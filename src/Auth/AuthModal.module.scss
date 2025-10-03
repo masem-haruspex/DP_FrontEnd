@@ -1,0 +1,191 @@
+// src/Auth/AuthModal.module.scss
+@use '../styles/vars' as *;
+@use '../styles/mixins' as *;
+
+.authModal {
+  @include modal-base();
+}
+
+.modalContent {
+  @include magical-card();
+  text-align: center;
+  position: relative;
+}
+
+.closeButton {
+  position: absolute;
+  top: $spacing-sm;
+  right: $spacing-sm;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: $twilight-purple;
+  cursor: pointer;
+  border-radius: $radius-full;
+  transition: all $duration-normal $easing-ease;
+  width: 32px;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+}
+
+.tabs {
+  display: flex;
+  justify-content: center;
+  margin-bottom: $spacing-lg;
+  gap: $spacing-md;
+}
+
+.tab {
+  padding: $spacing-sm $spacing-md;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: $twilight-purple;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: $radius-full;
+  cursor: pointer;
+  transition: all $duration-normal $easing-ease;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+  
+  &.active {
+    background: linear-gradient(45deg, $magic-pink, $starlight-blue);
+    color: white;
+    border-color: $magic-pink;
+  }
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  text-align: left;
+}
+
+.label {
+  font-weight: 600;
+  color: $twilight-purple;
+  font-size: 0.9rem;
+}
+
+.input {
+  @include magical-input();
+  padding: $spacing-sm $spacing-md;
+}
+
+.checkboxContainer {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-top: $spacing-sm;
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: $magic-pink;
+}
+
+.rememberMe {
+  color: $twilight-purple;
+  font-size: 0.9rem;
+}
+
+.submitButton {
+  @include magical-button();
+  background: linear-gradient(45deg, $magic-pink, $galaxy-purple);
+  color: white;
+  margin-top: $spacing-md;
+  padding: $spacing-md;
+  font-size: 1.1rem;
+  
+  &:hover:not(:disabled) {
+    border-color: transparent;
+  }
+}
+
+.socialButtons {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  margin-top: $spacing-lg;
+  padding-top: $spacing-lg;
+  border-top: 1px solid rgba(139, 0, 139, 0.2);
+}
+
+.socialButton {
+  @include magical-button();
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-md;
+  background: white;
+  color: $midnight-blue;
+  
+  &.google {
+    background: linear-gradient(45deg, #4285f4, #34a853, #fbbc05, #ea4335);
+    color: white;
+  }
+  
+  &.facebook {
+    background: linear-gradient(45deg, #3b5998, #4267b2);
+    color: white;
+  }
+}
+
+.switchText {
+  margin-top: $spacing-md;
+  color: $twilight-purple;
+  font-size: 0.9rem;
+  
+  button {
+    background: none;
+    border: none;
+    color: $magic-pink;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+    margin-left: 4px;
+    
+    &:hover {
+      text-decoration: none;
+    }
+  }
+}
+
+// Animations for form switching
+.formContainer {
+  overflow: hidden;
+}
+
+.formContent {
+  transition: transform $duration-normal $easing-ease, opacity $duration-normal $easing-ease;
+}
+
+.formContent.hidden {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.formContent.visible {
+  opacity: 1;
+  transform: translateY(0);
+}

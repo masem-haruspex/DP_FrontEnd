@@ -1,0 +1,127 @@
+// src/SinglePlayer/SinglePlayer.module.scss
+@use '../styles/vars' as *;
+@use '../styles/mixins' as *;
+
+.singlePlayerContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2000;
+  pointer-events: none; // Allow 3D interaction through
+}
+
+.controlsPanel {
+  position: absolute;
+  top: $spacing-lg;
+  left: $spacing-lg;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-medium;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  max-width: 300px;
+  width: 90%;
+  pointer-events: auto; // Enable interaction with controls
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, $magic-pink, $starlight-blue, $galaxy-purple);
+    z-index: -1;
+    border-radius: calc(#{$radius-lg} + 2px);
+    opacity: 0.6;
+  }
+}
+
+.backButton {
+  @include magical-button();
+  width: 100%;
+  margin-bottom: $spacing-lg;
+  padding: $spacing-sm;
+  font-size: 1rem;
+  background: linear-gradient(45deg, $magic-pink, $galaxy-purple);
+  color: white;
+  
+  &:hover:not(:disabled) {
+    border-color: transparent;
+    transform: translateY(-2px) scale(1.02);
+  }
+}
+
+.controlGroup {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.controlLabel {
+  font-weight: 600;
+  color: $twilight-purple;
+  font-size: 0.9rem;
+  margin-bottom: $spacing-xs;
+}
+
+.controlSlider {
+  width: 100%;
+  height: 6px;
+  background: rgba(139, 0, 139, 0.2);
+  border-radius: $radius-full;
+  outline: none;
+  -webkit-appearance: none;
+  
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: $radius-full;
+    background: $magic-pink;
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(255, 105, 180, 0.5);
+    transition: all $duration-normal $easing-ease;
+    
+    &:hover {
+      transform: scale(1.2);
+      background: $starlight-blue;
+    }
+  }
+  
+  &::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: $radius-full;
+    background: $magic-pink;
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(255, 105, 180, 0.5);
+    border: none;
+  }
+}
+
+.controlValue {
+  font-size: 0.8rem;
+  color: $twilight-purple;
+  text-align: right;
+  margin-top: $spacing-xs;
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .controlsPanel {
+    top: $spacing-md;
+    left: $spacing-md;
+    max-width: 280px;
+    padding: $spacing-md;
+  }
+  
+  .backButton {
+    padding: $spacing-xs;
+    font-size: 0.9rem;
+  }
+}

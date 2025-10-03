@@ -1,0 +1,82 @@
+// src/styles/vars.scss
+:root {
+  // Primary Magical Colors
+  --color-magic-pink: #ff69b4;
+  --color-starlight-blue: #87ceeb;
+  --color-moonstone-silver: #c0c0c0;
+  --color-galaxy-purple: #9370db;
+  --color-cosmic-gold: #ffd700;
+  
+  // Secondary Colors
+  --color-soft-white: #fffaf0;
+  --color-midnight-blue: #1a1a2e;
+  --color-twilight-purple: #6a0dad;
+  
+  // UI Colors
+  --color-success: #4caf50;
+  --color-error: #f44336;
+  --color-warning: #ff9800;
+  
+  // Opacities
+  --opacity-low: 0.3;
+  --opacity-medium: 0.6;
+  --opacity-high: 0.85;
+  
+  // Spacing
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-xxl: 3rem;
+  
+  // Border Radius
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-full: 9999px;
+  
+  // Shadows
+  --shadow-light: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-medium: 0 8px 24px rgba(0, 0, 0, 0.15);
+  --shadow-heavy: 0 12px 36px rgba(0, 0, 0, 0.2);
+  
+  // Animations
+  --duration-fast: 0.2s;
+  --duration-normal: 0.3s;
+  --duration-slow: 0.5s;
+  --easing-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --easing-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+// SCSS Variables (for mixins)
+$magic-pink: var(--color-magic-pink);
+$starlight-blue: var(--color-starlight-blue);
+$moonstone-silver: var(--color-moonstone-silver);
+$galaxy-purple: var(--color-galaxy-purple);
+$cosmic-gold: var(--color-cosmic-gold);
+$soft-white: var(--color-soft-white);
+$midnight-blue: var(--color-midnight-blue);
+$twilight-purple: var(--color-twilight-purple);
+
+$spacing-xs: var(--spacing-xs);
+$spacing-sm: var(--spacing-sm);
+$spacing-md: var(--spacing-md);
+$spacing-lg: var(--spacing-lg);
+$spacing-xl: var(--spacing-xl);
+$spacing-xxl: var(--spacing-xxl);
+
+$radius-sm: var(--radius-sm);
+$radius-md: var(--radius-md);
+$radius-lg: var(--radius-lg);
+$radius-full: var(--radius-full);
+
+$shadow-light: var(--shadow-light);
+$shadow-medium: var(--shadow-medium);
+$shadow-heavy: var(--shadow-heavy);
+
+$duration-fast: var(--duration-fast);
+$duration-normal: var(--duration-normal);
+$duration-slow: var(--duration-slow);
+$easing-ease: var(--easing-ease);
+$easing-bounce: var(--easing-bounce);

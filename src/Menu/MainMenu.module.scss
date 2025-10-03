@@ -1,0 +1,174 @@
+// src/Menu/MainMenu.module.scss
+@use '../styles/vars' as *;
+@use '../styles/mixins' as *;
+
+.mainMenu {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  pointer-events: none;
+
+}
+
+.cloudBackground {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.cloud {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  filter: blur(20px);
+  opacity: 0.7;
+}
+
+.cloud1 {
+  width: 300px;
+  height: 120px;
+  top: 15%;
+  left: 10%;
+  animation: float 15s infinite ease-in-out;
+}
+
+.cloud2 {
+  width: 250px;
+  height: 100px;
+  top: 30%;
+  right: 15%;
+  animation: float 18s infinite ease-in-out reverse;
+}
+
+.cloud3 {
+  width: 350px;
+  height: 140px;
+  bottom: 20%;
+  left: 20%;
+  animation: float 20s infinite ease-in-out;
+}
+
+.cloud4 {
+  width: 200px;
+  height: 80px;
+  bottom: 35%;
+  right: 25%;
+  animation: float 16s infinite ease-in-out reverse;
+}
+
+.menuContent {
+  @include magical-card();
+  text-align: center;
+  z-index: 10;
+  pointer-events: auto;
+}
+
+.menuTitle {
+  font-family: 'Segoe UI', 'Cursive', sans-serif;
+  font-size: 3.5rem;
+  margin-bottom: $spacing-xl;
+  color: $twilight-purple;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  letter-spacing: 1px;
+  font-weight: 300;
+  background: linear-gradient(45deg, $magic-pink, $galaxy-purple);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.menuNav {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.menuItem {
+  @include magical-button();
+  padding: $spacing-md $spacing-xl;
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: $twilight-purple;
+  background: rgba(255, 255, 255, 0.7);
+  border: 2px solid rgba(139, 0, 139, 0.4);
+
+  &:hover:not(:disabled) {
+    border-color: $magic-pink;
+  }
+}
+
+.loadingText {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loadingText::after {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: $magic-pink;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .menuTitle {
+    font-size: 2.5rem;
+  }
+
+  .menuItem {
+    padding: $spacing-sm $spacing-md;
+    font-size: 1.2rem;
+  }
+
+  .cloud1, .cloud2, .cloud3, .cloud4 {
+    transform: scale(0.8);
+  }
+}
+
+// About Modal Styles
+.modalOverlay {
+  @include modal-base();
+}
+
+.aboutModal {
+  @include magical-card();
+  text-align: center;
+}
+
+.aboutTitle {
+  color: $twilight-purple;
+  margin-bottom: $spacing-lg;
+  font-size: 2.2rem;
+}
+
+.aboutContent {
+  margin-bottom: $spacing-lg;
+  line-height: 1.6;
+  color: $twilight-purple;
+  font-size: 1.1rem;
+}
+
+.closeButton {
+  @include magical-button();
+  background: $twilight-purple;
+  color: white;
+  padding: $spacing-sm $spacing-md;
+  font-size: 1.1rem;
+
+  &:hover:not(:disabled) {
+    background: $magic-pink;
+    border-color: transparent;
+  }
+}

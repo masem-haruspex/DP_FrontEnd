@@ -1,0 +1,24 @@
+initial loading screen:
+Tiny video in the top of the Duo going over to sit down at the piano (actualy dont make it a video, use the 3d models)
+Circular Loading in the middle
+Both are white, background is an image of dark blue sky, with stars?
+
+When initial loading screen is done:
+Circular Loading is removed
+Keyboard with Black Cover appears in the bottom of the screen
+"Enter" button in the middle of the Covered Keyboard
+
+When you press the Enter button:
+Cover cloth is removed
+Keyboard keys start to be pressed
+Each key playing a note and releasing a letter of the title: "DuoPiano" or "Welcome to DuoPiano"
+which go upwards to the left of the logo
+The letters are 3d models
+
+After that:
+Buttons:
+	Single Player
+	Two Player
+	Setting
+	About
+

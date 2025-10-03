@@ -1,0 +1,150 @@
+// src/Settings/SettingsModal.module.scss
+@use '../styles/vars' as *;
+@use '../styles/mixins' as *;
+
+.modalOverlay {
+  @include modal-base();
+}
+
+.modalContent {
+  @include magical-card();
+  text-align: center;
+  max-width: 500px;
+  width: 90%;
+}
+
+.closeButton {
+  position: absolute;
+  top: $spacing-sm;
+  right: $spacing-sm;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: $twilight-purple;
+  cursor: pointer;
+  width: 32px;
+  aspect-ratio: 1;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  border-radius: $radius-full;
+  transition: all $duration-normal $easing-ease;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+}
+
+.modalTitle {
+  font-family: 'Segoe UI', 'Cursive', sans-serif;
+  font-size: 2.5rem;
+  margin-bottom: $spacing-xl;
+  color: $twilight-purple;
+  background: linear-gradient(45deg, $magic-pink, $galaxy-purple);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.settingsSection {
+  text-align: left;
+  margin-bottom: $spacing-lg;
+  padding: $spacing-md;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: $radius-md;
+}
+
+.sectionTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: $twilight-purple;
+  margin-bottom: $spacing-md;
+  padding-bottom: $spacing-xs;
+  border-bottom: 1px solid rgba(139, 0, 139, 0.2);
+}
+
+.settingItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+  padding: $spacing-sm 0;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.settingLabel {
+  color: $twilight-purple;
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+.settingControl {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.toggleSwitch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 24px;
+}
+
+.toggleSwitch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: $duration-normal $easing-ease;
+  border-radius: $radius-full;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: $duration-normal $easing-ease;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background: linear-gradient(45deg, $magic-pink, $starlight-blue);
+}
+
+input:checked + .slider:before {
+  transform: translateX(24px);
+}
+
+.backButton {
+  @include magical-button();
+  width: 100%;
+  padding: $spacing-sm;
+  font-size: 1rem;
+  background: linear-gradient(45deg, $galaxy-purple, $twilight-purple);
+  color: white;
+  margin-top: $spacing-md;
+  
+  &:hover:not(:disabled) {
+    border-color: transparent;
+    transform: translateY(-2px);
+  }
+}

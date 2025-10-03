@@ -1,0 +1,133 @@
+// src/SinglePlayer/SinglePlayerModal.module.scss
+@use '../styles/vars' as *;
+@use '../styles/mixins' as *;
+
+.modalOverlay {
+  @include modal-base();
+}
+
+.modalContent {
+  @include magical-card();
+  text-align: center;
+  max-width: 600px;
+  width: 90%;
+}
+
+.closeButton {
+  position: absolute;
+  top: $spacing-sm;
+  right: $spacing-sm;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: $twilight-purple;
+  cursor: pointer;
+  border-radius: $radius-full;
+  transition: all $duration-normal $easing-ease;
+  width: 32px;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+}
+
+.modalTitle {
+  font-family: 'Segoe UI', 'Cursive', sans-serif;
+  font-size: 2.5rem;
+  margin-bottom: $spacing-xl;
+  color: $twilight-purple;
+  background: linear-gradient(45deg, $magic-pink, $galaxy-purple);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+// Mode selection buttons
+.modeButtons {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  margin-bottom: $spacing-lg;
+}
+
+.modeButton {
+  @include magical-button();
+  padding: $spacing-md $spacing-xl;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: $twilight-purple;
+  background: rgba(255, 255, 255, 0.8);
+  border: 2px solid rgba(139, 0, 139, 0.4);
+  
+  &:hover:not(:disabled) {
+    border-color: $magic-pink;
+    background: rgba(255, 255, 255, 0.95);
+  }
+}
+
+// Songs list
+.songsList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: $spacing-md;
+  margin: $spacing-md 0;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: $radius-md;
+}
+
+.songItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-sm;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: $radius-sm;
+  border: 1px solid rgba(139, 0, 139, 0.2);
+}
+
+.songName {
+  color: $twilight-purple;
+  font-weight: 500;
+  font-size: 1rem;
+  text-align: left;
+  flex: 1;
+}
+
+.playButton {
+  @include magical-button();
+  padding: $spacing-xs $spacing-sm;
+  font-size: 0.9rem;
+  background: linear-gradient(45deg, $magic-pink, $starlight-blue);
+  color: white;
+  min-width: 80px;
+  
+  &:hover:not(:disabled) {
+    border-color: transparent;
+    transform: translateY(-1px) scale(1.05);
+  }
+}
+
+.backButton {
+  @include magical-button();
+  width: 100%;
+  padding: $spacing-sm;
+  font-size: 1rem;
+  background: linear-gradient(45deg, $galaxy-purple, $twilight-purple);
+  color: white;
+  margin-top: $spacing-md;
+  
+  &:hover:not(:disabled) {
+    border-color: transparent;
+    transform: translateY(-2px);
+  }
+}

@@ -1,4 +1,3 @@
-// src/Auth/AuthModal.tsx
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './AuthModal.module.scss';
@@ -25,42 +24,35 @@ export default function AuthModal({
   const [registerForm, setRegisterForm] = useState({
     email: '',
     username: '',
-    displayName: '',
     password: '',
     confirmPassword: ''
   });
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login logic here
     console.log('Login submitted:', loginForm);
   };
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle registration logic here
     console.log('Register submitted:', registerForm);
   };
 
   const handleGoogleLogin = () => {
-    // Handle Google login
     console.log('Google login clicked');
   };
 
   const handleFacebookLogin = () => {
-    // Handle Facebook login
     console.log('Facebook login clicked');
   };
 
   useEffect(() => {
     if (isOpen) {
       setActiveTab('login');
-      // Reset forms when modal opens
       setLoginForm({ identifier: '', password: '', rememberMe: false });
       setRegisterForm({
         email: '',
         username: '',
-        displayName: '',
         password: '',
         confirmPassword: ''
       });
@@ -75,7 +67,7 @@ export default function AuthModal({
         <button className={styles.closeButton} onClick={onClose}>
           ✕
         </button>
-        
+
         <div className={styles.tabs}>
           <button
             className={`${styles.tab} ${activeTab === 'login' ? styles.active : ''}`}
@@ -109,40 +101,40 @@ export default function AuthModal({
                       type="text"
                       className={styles.input}
                       value={loginForm.identifier}
-                      onChange={(e) => setLoginForm({...loginForm, identifier: e.target.value})}
+                      onChange={(e) => setLoginForm({ ...loginForm, identifier: e.target.value })}
                       required
                     />
                   </div>
-                  
+
                   <div className={styles.inputGroup}>
                     <label className={styles.label}>Password</label>
                     <input
                       type="password"
                       className={styles.input}
                       value={loginForm.password}
-                      onChange={(e) => setLoginForm({...loginForm, password: e.target.value})}
+                      onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
                       required
                     />
                   </div>
-                  
+
                   <div className={styles.checkboxContainer}>
                     <input
                       type="checkbox"
                       className={styles.checkbox}
                       id="rememberMe"
                       checked={loginForm.rememberMe}
-                      onChange={(e) => setLoginForm({...loginForm, rememberMe: e.target.checked})}
+                      onChange={(e) => setLoginForm({ ...loginForm, rememberMe: e.target.checked })}
                     />
                     <label htmlFor="rememberMe" className={styles.rememberMe}>
                       Remember me
                     </label>
                   </div>
-                  
+
                   <button type="submit" className={styles.submitButton}>
                     Login
                   </button>
                 </form>
-                
+
                 <div className={styles.socialButtons}>
                   <button className={`${styles.socialButton} ${styles.google}`} onClick={handleGoogleLogin}>
                     <span>Continue with Google</span>
@@ -151,14 +143,14 @@ export default function AuthModal({
                     <span>Continue with Facebook</span>
                   </button>
                 </div>
-                
+
                 <div className={styles.switchText}>
                   Don't have an account?{' '}
                   <button onClick={onSwitchToRegister}>Register here</button>
                 </div>
               </motion.div>
             )}
-            
+
             {activeTab === 'register' && (
               <motion.div
                 key="register"
@@ -175,60 +167,49 @@ export default function AuthModal({
                       type="email"
                       className={styles.input}
                       value={registerForm.email}
-                      onChange={(e) => setRegisterForm({...registerForm, email: e.target.value})}
+                      onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
                       required
                     />
                   </div>
-                  
+
                   <div className={styles.inputGroup}>
                     <label className={styles.label}>Username</label>
                     <input
                       type="text"
                       className={styles.input}
                       value={registerForm.username}
-                      onChange={(e) => setRegisterForm({...registerForm, username: e.target.value})}
+                      onChange={(e) => setRegisterForm({ ...registerForm, username: e.target.value })}
                       required
                     />
                   </div>
-                  
-                  <div className={styles.inputGroup}>
-                    <label className={styles.label}>Display Name</label>
-                    <input
-                      type="text"
-                      className={styles.input}
-                      value={registerForm.displayName}
-                      onChange={(e) => setRegisterForm({...registerForm, displayName: e.target.value})}
-                      required
-                    />
-                  </div>
-                  
+
                   <div className={styles.inputGroup}>
                     <label className={styles.label}>Password</label>
                     <input
                       type="password"
                       className={styles.input}
                       value={registerForm.password}
-                      onChange={(e) => setRegisterForm({...registerForm, password: e.target.value})}
+                      onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
                       required
                     />
                   </div>
-                  
+
                   <div className={styles.inputGroup}>
                     <label className={styles.label}>Confirm Password</label>
                     <input
                       type="password"
                       className={styles.input}
                       value={registerForm.confirmPassword}
-                      onChange={(e) => setRegisterForm({...registerForm, confirmPassword: e.target.value})}
+                      onChange={(e) => setRegisterForm({ ...registerForm, confirmPassword: e.target.value })}
                       required
                     />
                   </div>
-                  
+
                   <button type="submit" className={styles.submitButton}>
                     Register
                   </button>
                 </form>
-                
+
                 <div className={styles.switchText}>
                   Already have an account?{' '}
                   <button onClick={onSwitchToLogin}>Login here</button>

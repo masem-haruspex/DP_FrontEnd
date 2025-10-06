@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './AuthModal.module.scss';
+import { useLogin } from './hooks/useLogin';
+import { useRegister } from './hooks/useRegister';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -15,6 +17,7 @@ export default function AuthModal({
   onSwitchToLogin,
   onSwitchToRegister
 }: AuthModalProps) {
+
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
   const [loginForm, setLoginForm] = useState({
     identifier: '',
@@ -28,18 +31,34 @@ export default function AuthModal({
     confirmPassword: ''
   });
 
+  const { mutate: login} = useLogin();
+  const { mutate: register} = useRegister();
+
+  const baseURL = import.meta.env.VITE_BASE_URL;
+  const authBaseUrl = import.meta.env.VITE_AUTH_API_BASE_URL;
+
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Login submitted:', loginForm);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (emailRegex.test(loginForm.identifier)) {
+      login({ email: loginForm.identifier, password: loginForm.password });
+    } else {
+      login({ username: loginForm.identifier, password: loginForm.password });
+    }
   };
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Register submitted:', registerForm);
+    register({
+      username: registerForm.username,
+      password: registerForm.password,
+      email: registerForm.email
+    });
   };
 
   const handleGoogleLogin = () => {
-    console.log('Google login clicked');
+    const redirectUri = encodeURIComponent(baseURL + "/oauth2/redirect");
+    window.location.href = `${authBaseUrl}/oauth2/authorize/google?redirect_uri=${redirectUri}`
   };
 
   const handleFacebookLogin = () => {

@@ -109,6 +109,7 @@ export default function App() {
     setShowMainMenu(true);
   };
 
+
   useEffect(() => {
     if (hasUserInteracted && !preloaderStarted) {
       setPreloaderStarted(true);
@@ -134,6 +135,22 @@ export default function App() {
     }
   }, [modelsLoaded, animationComplete, audioInitialized, showMainMenu, handleLoadingComplete]);
 
+  // For handling OAuth2 redirect with token
+  useEffect(() => {
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const token = hashParams.get("token");
+    const error = hashParams.get("error");
+
+    if (token) {
+      localStorage.setItem("token", token);
+      console.log("Google login successful!");
+      window.history.replaceState({}, document.title, window.location.pathname);
+
+    } else if (error) {
+      console.error("OAuth2 login failed:", error);
+    }
+  }, []);
+  
   if (!hasUserInteracted) {
     return (
       <div className={styles.splashScreen} onClick={handleEnterClick}>

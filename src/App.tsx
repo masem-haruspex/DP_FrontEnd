@@ -143,7 +143,7 @@ export default function App() {
 
     if (token) {
       localStorage.setItem("token", token);
-      console.log("Google login successful!");
+      console.log("Google login successfully!");
       window.history.replaceState({}, document.title, window.location.pathname);
 
     } else if (error) {

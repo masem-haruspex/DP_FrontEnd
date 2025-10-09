@@ -109,6 +109,30 @@ export default function App() {
     setShowMainMenu(true);
   };
 
+  const handleStraightToMenu = () => {
+    setHasUserInteracted(true);
+    setShowMainMenu(true);
+  }
+
+  // For handling OAuth2 redirect with token
+  useEffect(() => {
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const token = hashParams.get("token");
+    const error = hashParams.get("error");
+
+    if (token) {
+      localStorage.setItem("token", token);
+      console.log("Google login successfully!");
+      window.history.replaceState({}, document.title, window.location.pathname);
+      handleStraightToMenu();
+      
+    } else if (error) {
+      console.error("OAuth2 login failed:", error);
+      handleStraightToMenu();
+    }
+    
+  }, []);
+
 
   useEffect(() => {
     if (hasUserInteracted && !preloaderStarted) {
@@ -134,22 +158,6 @@ export default function App() {
       handleLoadingComplete();
     }
   }, [modelsLoaded, animationComplete, audioInitialized, showMainMenu, handleLoadingComplete]);
-
-  // For handling OAuth2 redirect with token
-  useEffect(() => {
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const token = hashParams.get("token");
-    const error = hashParams.get("error");
-
-    if (token) {
-      localStorage.setItem("token", token);
-      console.log("Google login successfully!");
-      window.history.replaceState({}, document.title, window.location.pathname);
-
-    } else if (error) {
-      console.error("OAuth2 login failed:", error);
-    }
-  }, []);
   
   if (!hasUserInteracted) {
     return (

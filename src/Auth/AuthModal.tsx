@@ -45,6 +45,7 @@ export default function AuthModal({
     } else {
       login({ username: loginForm.identifier, password: loginForm.password });
     }
+    onClose();
   };
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
@@ -54,6 +55,7 @@ export default function AuthModal({
       password: registerForm.password,
       email: registerForm.email
     });
+    onClose();
   };
 
   const handleGoogleLogin = () => {

@@ -36,6 +36,7 @@ export default function AuthModal({
 
   const baseURL = import.meta.env.VITE_BASE_URL;
   const authBaseUrl = import.meta.env.VITE_AUTH_API_BASE_URL;
+  const redirectUri = encodeURIComponent(baseURL + "/oauth2/redirect");
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,12 +60,12 @@ export default function AuthModal({
   };
 
   const handleGoogleLogin = () => {
-    const redirectUri = encodeURIComponent(baseURL + "/oauth2/redirect");
+    
     window.location.href = `${authBaseUrl}/oauth2/authorize/google?redirect_uri=${redirectUri}`
   };
 
   const handleFacebookLogin = () => {
-    console.log('Facebook login clicked');
+    window.location.href = `${authBaseUrl}/oauth2/authorize/facebook?redirect_uri=${redirectUri}`
   };
 
   useEffect(() => {

@@ -1,0 +1,116 @@
+// Auth/LoginNeededModal.module.scss
+@use '../styles/vars' as *;
+@use '../styles/mixins' as *;
+
+.modalOverlay {
+  @include modal-base();
+}
+
+.modalContent {
+  @include magical-card();
+  max-width: 450px;
+  width: 90%;
+  text-align: center;
+}
+
+.title {
+  font-family: 'Segoe UI', 'Cursive', sans-serif;
+  font-size: 2rem;
+  margin-bottom: $spacing-lg;
+  color: $twilight-purple;
+  background: linear-gradient(45deg, $magic-pink, $galaxy-purple);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.message {
+  color: $twilight-purple;
+  font-size: 1.1rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.reason {
+  background: rgba(255, 255, 255, 0.6);
+  padding: $spacing-md;
+  border-radius: $radius-md;
+  border-left: 4px solid $magic-pink;
+  text-align: left;
+  
+  strong {
+    display: block;
+    margin-bottom: $spacing-xs;
+    color: $twilight-purple;
+    font-size: 0.9rem;
+  }
+  
+  p {
+    margin: 0;
+    color: $twilight-purple;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    opacity: 0.9;
+  }
+}
+
+.actions {
+  display: flex;
+  gap: $spacing-md;
+  justify-content: center;
+  margin-top: $spacing-sm;
+}
+
+.cancelButton, .loginButton {
+  @include magical-button();
+  padding: $spacing-sm $spacing-lg;
+  font-size: 1rem;
+  min-width: 100px;
+}
+
+.cancelButton {
+  background: rgba(255, 255, 255, 0.8);
+  color: $twilight-purple;
+  border: 2px solid rgba(139, 0, 139, 0.4);
+  
+  &:hover:not(:disabled) {
+    border-color: $magic-pink;
+  }
+}
+
+.loginButton {
+  background: linear-gradient(45deg, $magic-pink, $starlight-blue);
+  color: white;
+  border: none;
+  
+  &:hover:not(:disabled) {
+    border-color: transparent;
+    transform: translateY(-2px);
+  }
+}
+
+// Responsive
+@media (max-width: 480px) {
+  .modalContent {
+    padding: $spacing-lg;
+  }
+  
+  .title {
+    font-size: 1.7rem;
+  }
+  
+  .actions {
+    flex-direction: column;
+  }
+  
+  .cancelButton, .loginButton {
+    width: 100%;
+  }
+}

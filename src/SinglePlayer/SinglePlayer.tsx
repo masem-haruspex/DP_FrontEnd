@@ -1,28 +1,22 @@
-// src/SinglePlayer/SinglePlayer.tsx
+// SinglePlayer/SinglePlayer.tsx
 import { useState, useCallback } from 'react';
 import styles from './SinglePlayer.module.scss';
 
 interface SinglePlayerProps {
   onBack: () => void;
+  onSettingsChange: (settings: any) => void;
+  currentSettings: any;
 }
 
-export default function SinglePlayer({ onBack }: SinglePlayerProps) {
-  const [settings, setSettings] = useState({
-    volume: 0.2,
-    reverb: 0.5,
-    delay: 0.3,
-    distortion: 0.2,
-    chorus: 0.4,
-    bass: 0,
-    mid: 0,
-    treble: 0
-  });
+export default function SinglePlayer({ onBack, onSettingsChange, currentSettings }: SinglePlayerProps) {
+  const [settings, setSettings] = useState(currentSettings);
 
+  // TODO make the settings actually affect the sounds
   const handleSettingChange = useCallback((setting: keyof typeof settings, value: number) => {
-    setSettings(prev => ({ ...prev, [setting]: value }));
-    // In a real implementation, you'd update the audio effects here
-    // For now, this just updates the UI state
-  }, []);
+    const newSettings = { ...settings, [setting]: value };
+    setSettings(newSettings);
+    onSettingsChange(newSettings);
+  }, [settings, onSettingsChange]);
 
   const formatValue = (value: number): string => {
     return (value * 100).toFixed(0) + '%';
@@ -34,7 +28,7 @@ export default function SinglePlayer({ onBack }: SinglePlayerProps) {
         <button className={styles.backButton} onClick={onBack}>
           ← Back to Menu
         </button>
-        
+
         <div className={styles.controlGroup}>
           <label className={styles.controlLabel}>Volume</label>
           <input
@@ -48,7 +42,7 @@ export default function SinglePlayer({ onBack }: SinglePlayerProps) {
           />
           <span className={styles.controlValue}>{formatValue(settings.volume)}</span>
         </div>
-        
+
         <div className={styles.controlGroup}>
           <label className={styles.controlLabel}>Reverb</label>
           <input
@@ -62,7 +56,7 @@ export default function SinglePlayer({ onBack }: SinglePlayerProps) {
           />
           <span className={styles.controlValue}>{formatValue(settings.reverb)}</span>
         </div>
-        
+
         <div className={styles.controlGroup}>
           <label className={styles.controlLabel}>Delay</label>
           <input
@@ -76,7 +70,7 @@ export default function SinglePlayer({ onBack }: SinglePlayerProps) {
           />
           <span className={styles.controlValue}>{formatValue(settings.delay)}</span>
         </div>
-        
+
         <div className={styles.controlGroup}>
           <label className={styles.controlLabel}>Distortion</label>
           <input
@@ -90,7 +84,7 @@ export default function SinglePlayer({ onBack }: SinglePlayerProps) {
           />
           <span className={styles.controlValue}>{formatValue(settings.distortion)}</span>
         </div>
-        
+
         <div className={styles.controlGroup}>
           <label className={styles.controlLabel}>Chorus</label>
           <input
@@ -104,7 +98,7 @@ export default function SinglePlayer({ onBack }: SinglePlayerProps) {
           />
           <span className={styles.controlValue}>{formatValue(settings.chorus)}</span>
         </div>
-        
+
         <div className={styles.controlGroup}>
           <label className={styles.controlLabel}>Bass</label>
           <input
@@ -118,7 +112,7 @@ export default function SinglePlayer({ onBack }: SinglePlayerProps) {
           />
           <span className={styles.controlValue}>{(settings.bass * 100).toFixed(0)}%</span>
         </div>
-        
+
         <div className={styles.controlGroup}>
           <label className={styles.controlLabel}>Mid</label>
           <input
@@ -132,7 +126,7 @@ export default function SinglePlayer({ onBack }: SinglePlayerProps) {
           />
           <span className={styles.controlValue}>{(settings.mid * 100).toFixed(0)}%</span>
         </div>
-        
+
         <div className={styles.controlGroup}>
           <label className={styles.controlLabel}>Treble</label>
           <input
@@ -147,7 +141,6 @@ export default function SinglePlayer({ onBack }: SinglePlayerProps) {
           <span className={styles.controlValue}>{(settings.treble * 100).toFixed(0)}%</span>
         </div>
       </div>
-      
     </div>
   );
 }

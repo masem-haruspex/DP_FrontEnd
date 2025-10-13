@@ -1,5 +1,7 @@
-// src/Settings/SettingsModal.tsx
-import { useState } from 'react';
+// Settings/SettingsModal.tsx
+import { useState, useEffect } from 'react';
+import { useAtom } from 'jotai';
+import { preferredKeyboardAtom } from '../atoms/auth';
 import styles from './SettingsModal.module.scss';
 
 interface SettingsModalProps {
@@ -7,7 +9,7 @@ interface SettingsModalProps {
 }
 
 export default function SettingsModal({ onClose }: SettingsModalProps) {
-  
+  const [preferredKeyboard, setPreferredKeyboard] = useAtom(preferredKeyboardAtom);
   const [settings, setSettings] = useState({
     soundEnabled: true,
     visualEffects: true,
@@ -19,11 +21,22 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
     showDebug: false
   });
 
+  useEffect(() => {
+    // Load settings from localStorage
+    const savedSettings = localStorage.getItem('app_settings');
+    if (savedSettings) {
+      setSettings(prev => ({ ...prev, ...JSON.parse(savedSettings) }));
+    }
+  }, []);
+
   const handleToggle = (key: keyof typeof settings) => {
-    setSettings(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
+    const newSettings = { ...settings, [key]: !settings[key] };
+    setSettings(newSettings);
+    localStorage.setItem('app_settings', JSON.stringify(newSettings));
+  };
+
+  const handleKeyboardChange = (keyboard: 'Casio' | 'Midiplus') => {
+    setPreferredKeyboard(keyboard);
   };
 
   return (
@@ -32,12 +45,37 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
         <button className={styles.closeButton} onClick={onClose}>
           ✕
         </button>
-        
+
         <h2 className={styles.modalTitle}>Settings</h2>
-        
+
+        {/* Keyboard Preference Section */}
+        <div className={styles.settingsSection}>
+          <h3 className={styles.sectionTitle}>Keyboard Preference</h3>
+
+          <div className={styles.keyboardOptions}>
+            <button
+              className={`${styles.keyboardOption} ${
+                preferredKeyboard === 'Casio' ? styles.keyboardOptionActive : ''
+              }`}
+              onClick={() => handleKeyboardChange('Casio')}
+            >
+              <span className={styles.keyboardName}>Casio</span>
+            </button>
+
+            <button
+              className={`${styles.keyboardOption} ${
+                preferredKeyboard === 'Midiplus' ? styles.keyboardOptionActive : ''
+              }`}
+              onClick={() => handleKeyboardChange('Midiplus')}
+            >
+              <span className={styles.keyboardName}>Midiplus</span>
+            </button>
+          </div>
+        </div>
+
         <div className={styles.settingsSection}>
           <h3 className={styles.sectionTitle}>Audio & Visual</h3>
-          
+
           <div className={styles.settingItem}>
             <span className={styles.settingLabel}>Sound Enabled</span>
             <label className={styles.toggleSwitch}>
@@ -49,7 +87,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
               <span className={styles.slider}></span>
             </label>
           </div>
-          
+
           <div className={styles.settingItem}>
             <span className={styles.settingLabel}>Visual Effects</span>
             <label className={styles.toggleSwitch}>
@@ -61,7 +99,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
               <span className={styles.slider}></span>
             </label>
           </div>
-          
+
           <div className={styles.settingItem}>
             <span className={styles.settingLabel}>Bloom Effect</span>
             <label className={styles.toggleSwitch}>
@@ -73,7 +111,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
               <span className={styles.slider}></span>
             </label>
           </div>
-          
+
           <div className={styles.settingItem}>
             <span className={styles.settingLabel}>Floating Particles</span>
             <label className={styles.toggleSwitch}>
@@ -86,10 +124,10 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
             </label>
           </div>
         </div>
-        
+
         <div className={styles.settingsSection}>
           <h3 className={styles.sectionTitle}>General</h3>
-          
+
           <div className={styles.settingItem}>
             <span className={styles.settingLabel}>Dark Mode</span>
             <label className={styles.toggleSwitch}>
@@ -101,7 +139,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
               <span className={styles.slider}></span>
             </label>
           </div>
-          
+
           <div className={styles.settingItem}>
             <span className={styles.settingLabel}>Auto-Save</span>
             <label className={styles.toggleSwitch}>
@@ -113,7 +151,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
               <span className={styles.slider}></span>
             </label>
           </div>
-          
+
           <div className={styles.settingItem}>
             <span className={styles.settingLabel}>Notifications</span>
             <label className={styles.toggleSwitch}>
@@ -125,7 +163,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
               <span className={styles.slider}></span>
             </label>
           </div>
-          
+
           <div className={styles.settingItem}>
             <span className={styles.settingLabel}>Show Debug Stats</span>
             <label className={styles.toggleSwitch}>
@@ -138,7 +176,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
             </label>
           </div>
         </div>
-        
+
         <button className={styles.backButton} onClick={onClose}>
           ← Back to Menu
         </button>

@@ -1,4 +1,4 @@
-// src/Settings/SettingsModal.module.scss
+// Settings/SettingsModal.module.scss
 @use '../styles/vars' as *;
 @use '../styles/mixins' as *;
 
@@ -8,9 +8,10 @@
 
 .modalContent {
   @include magical-card();
-  text-align: center;
   max-width: 500px;
   width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
 .closeButton {
@@ -22,15 +23,16 @@
   font-size: 1.5rem;
   color: $twilight-purple;
   cursor: pointer;
-  width: 32px;
-  aspect-ratio: 1;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  place-items: center;
   border-radius: $radius-full;
   transition: all $duration-normal $easing-ease;
-  
+  width: 32px;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+
   &:hover {
     background: rgba(255, 255, 255, 0.3);
   }
@@ -49,31 +51,62 @@
 }
 
 .settingsSection {
-  text-align: left;
-  margin-bottom: $spacing-lg;
-  padding: $spacing-md;
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: $radius-md;
+  margin-bottom: $spacing-xl;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 }
 
 .sectionTitle {
-  font-size: 1.2rem;
-  font-weight: 600;
   color: $twilight-purple;
+  font-size: 1.3rem;
   margin-bottom: $spacing-md;
   padding-bottom: $spacing-xs;
-  border-bottom: 1px solid rgba(139, 0, 139, 0.2);
+  border-bottom: 2px solid rgba(139, 0, 139, 0.3);
 }
 
+// Keyboard Preference Styles
+.keyboardOptions {
+  display: flex;
+  gap: $spacing-md;
+  margin-top: $spacing-sm;
+}
+
+.keyboardOption {
+  @include magical-button();
+  flex: 1;
+  padding: $spacing-md;
+  font-size: 1rem;
+  background: rgba(255, 255, 255, 0.6);
+  border: 2px solid rgba(139, 0, 139, 0.3);
+  color: $twilight-purple;
+
+  &.keyboardOptionActive {
+    background: linear-gradient(45deg, $magic-pink, $starlight-blue);
+    color: white;
+    border-color: transparent;
+  }
+
+  &:hover:not(:disabled) {
+    border-color: $magic-pink;
+  }
+}
+
+.keyboardName {
+  font-weight: 600;
+}
+
+// Setting Items
 .settingItem {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: $spacing-md;
   padding: $spacing-sm 0;
-  
+  border-bottom: 1px solid rgba(139, 0, 139, 0.1);
+
   &:last-child {
-    margin-bottom: 0;
+    border-bottom: none;
   }
 }
 
@@ -83,16 +116,10 @@
   font-size: 1rem;
 }
 
-.settingControl {
-  display: flex;
-  align-items: center;
-  gap: $spacing-sm;
-}
-
 .toggleSwitch {
   position: relative;
   display: inline-block;
-  width: 48px;
+  width: 50px;
   height: 24px;
 }
 
@@ -109,29 +136,35 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #ccc;
-  transition: $duration-normal $easing-ease;
+  background: rgba(139, 0, 139, 0.3);
+  transition: all $duration-normal $easing-ease;
   border-radius: $radius-full;
-}
 
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 18px;
-  width: 18px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: $duration-normal $easing-ease;
-  border-radius: 50%;
+  &::before {
+    content: '';
+    position: absolute;
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background: white;
+    transition: all $duration-normal $easing-ease;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
 }
 
 input:checked + .slider {
   background: linear-gradient(45deg, $magic-pink, $starlight-blue);
 }
 
-input:checked + .slider:before {
-  transform: translateX(24px);
+input:checked + .slider::before {
+  transform: translateX(26px);
+}
+
+input:disabled + .slider {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .backButton {
@@ -139,12 +172,33 @@ input:checked + .slider:before {
   width: 100%;
   padding: $spacing-sm;
   font-size: 1rem;
-  background: linear-gradient(45deg, $galaxy-purple, $twilight-purple);
+  background: linear-gradient(45deg, $twilight-purple, $galaxy-purple);
   color: white;
-  margin-top: $spacing-md;
-  
+  margin-top: $spacing-lg;
+
   &:hover:not(:disabled) {
     border-color: transparent;
     transform: translateY(-2px);
+  }
+}
+
+// Responsive
+@media (max-width: 480px) {
+  .modalContent {
+    padding: $spacing-lg;
+  }
+
+  .keyboardOptions {
+    flex-direction: column;
+  }
+
+  .settingItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-sm;
+  }
+
+  .toggleSwitch {
+    align-self: flex-end;
   }
 }

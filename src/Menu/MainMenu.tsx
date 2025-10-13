@@ -1,22 +1,29 @@
-// src/components/Menu/MainMenu.tsx
+// Menu/MainMenu.tsx
 import { useState } from 'react';
+import { useAtom } from 'jotai';
 import styles from './MainMenu.module.scss';
 import SinglePlayerModal from '../SinglePlayer/SinglePlayerModal';
 import MultiplayerModal from '../Multiplayer/MultiplayerModal';
 import AuthModal from '../Auth/AuthModal';
 import SettingsModal from '../Settings/SettingsModal';
+import LoginNeededModal from '../Auth/LoginNeededModal';
+import { useAuth } from '../Auth/AuthContext';
+import { protectedRouteAttemptAtom } from '../atoms/auth';
 
 interface MainMenuProps {
   onSinglePlayer: () => void;
+  onMultiplayerRoom: (roomCode: string) => void;
   isInitializing?: boolean;
 }
 
-export default function MainMenu({ onSinglePlayer, isInitializing = false }: MainMenuProps) {
+export default function MainMenu({ onSinglePlayer, onMultiplayerRoom, isInitializing = false }: MainMenuProps) {
   const [showAbout, setShowAbout] = useState(false);
   const [showSinglePlayerModal, setShowSinglePlayerModal] = useState(false);
   const [showMultiplayerModal, setShowMultiplayerModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [protectedRouteAttempt, setProtectedRouteAttempt] = useAtom(protectedRouteAttemptAtom);
+  const { isAuthenticated, user, logout } = useAuth();
 
   const handleSinglePlayerClick = () => {
     setShowSinglePlayerModal(true);
@@ -27,7 +34,11 @@ export default function MainMenu({ onSinglePlayer, isInitializing = false }: Mai
   };
 
   const handleAuthClick = () => {
-    setShowAuthModal(true);
+    if (isAuthenticated) {
+      logout();
+    } else {
+      setShowAuthModal(true);
+    }
   };
 
   const handleFreePlay = () => {
@@ -39,10 +50,32 @@ export default function MainMenu({ onSinglePlayer, isInitializing = false }: Mai
     setShowSettingsModal(true);
   };
 
+  const handleOpenAuthModal = () => {
+    setShowAuthModal(true);
+  };
+
+  const handleCloseAuthModal = () => {
+    setShowAuthModal(false);
+
+    if (protectedRouteAttempt) {
+      setProtectedRouteAttempt(null);
+    }
+  };
+
+  const handleAuthSuccess = () => {
+    if (protectedRouteAttempt === '/host-room') {
+      setShowMultiplayerModal(true);
+    }
+  };
+
+  const handleMultiplayerRoomCreated = (roomCode: string) => {
+    setShowMultiplayerModal(false);
+    onMultiplayerRoom(roomCode);
+  };
+
   return (
     <>
       <div className={styles.mainMenu}>
-
         <div className={styles.menuContent}>
           <h1 className={styles.menuTitle}>Virtual Piano</h1>
 
@@ -74,7 +107,7 @@ export default function MainMenu({ onSinglePlayer, isInitializing = false }: Mai
               className={styles.menuItem}
               onClick={handleAuthClick}
             >
-              Login/Logout
+              {isAuthenticated ? `Logout (${user?.username})` : 'Login'}
             </button>
           </nav>
         </div>
@@ -105,17 +138,19 @@ export default function MainMenu({ onSinglePlayer, isInitializing = false }: Mai
       {showMultiplayerModal && (
         <MultiplayerModal
           onClose={() => setShowMultiplayerModal(false)}
+          onRoomCreated={handleMultiplayerRoomCreated}
         />
       )}
 
-      {showAuthModal && (
-        <AuthModal
-          isOpen={true}
-          onClose={() => setShowAuthModal(false)}
-          onSwitchToLogin={() => {}}
-          onSwitchToRegister={() => {}}
-        />
-      )}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={handleCloseAuthModal}
+        onAuthSuccess={handleAuthSuccess}
+      />
+
+      <LoginNeededModal
+        onOpenAuthModal={handleOpenAuthModal}
+      />
 
       {showSettingsModal && (
         <SettingsModal

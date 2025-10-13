@@ -1,3 +1,212 @@
+BUG:
+---bug1---
+When i started the website and i was already logged in i got a 401 unautherised when creating a room:
+[RoomService] [2025-10-13T10:13:18.009Z] createRoom: Starting request {ownerId: '04a9fcef-68a6-4e14-947c-d380d488920a', roomData: {…}}
+RoomService.ts:26  POST http://localhost:8082/api/rooms 401 (Unauthorized)
+dispatchXhrRequest @ axios.js?v=dfdb3c61:1683
+xhr @ axios.js?v=dfdb3c61:1560
+dispatchRequest @ axios.js?v=dfdb3c61:2085
+Promise.then
+_request @ axios.js?v=dfdb3c61:2288
+request @ axios.js?v=dfdb3c61:2197
+httpMethod @ axios.js?v=dfdb3c61:2334
+wrap @ axios.js?v=dfdb3c61:8
+createRoom @ RoomService.ts:26
+handleCreateRoom @ MultiplayerModal.tsx:58
+executeDispatch @ chunk-KRPX2R7K.js?v=3e4bb7d2:11736
+runWithFiberInDEV @ chunk-KRPX2R7K.js?v=3e4bb7d2:1485
+processDispatchQueue @ chunk-KRPX2R7K.js?v=3e4bb7d2:11772
+(anonymous) @ chunk-KRPX2R7K.js?v=3e4bb7d2:12182
+batchedUpdates$1 @ chunk-KRPX2R7K.js?v=3e4bb7d2:2628
+dispatchEventForPluginEventSystem @ chunk-KRPX2R7K.js?v=3e4bb7d2:11877
+dispatchEvent @ chunk-KRPX2R7K.js?v=3e4bb7d2:14792
+dispatchDiscreteEvent @ chunk-KRPX2R7K.js?v=3e4bb7d2:14773
+<button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=252791b4:250
+renderHostView @ MultiplayerModal.tsx:201
+MultiplayerModal @ MultiplayerModal.tsx:302
+react-stack-bottom-frame @ chunk-KRPX2R7K.js?v=3e4bb7d2:17424
+renderWithHooks @ chunk-KRPX2R7K.js?v=3e4bb7d2:4206
+updateFunctionComponent @ chunk-KRPX2R7K.js?v=3e4bb7d2:6619
+beginWork @ chunk-KRPX2R7K.js?v=3e4bb7d2:7654
+runWithFiberInDEV @ chunk-KRPX2R7K.js?v=3e4bb7d2:1485
+performUnitOfWork @ chunk-KRPX2R7K.js?v=3e4bb7d2:10868
+workLoopSync @ chunk-KRPX2R7K.js?v=3e4bb7d2:10728
+renderRootSync @ chunk-KRPX2R7K.js?v=3e4bb7d2:10711
+performWorkOnRoot @ chunk-KRPX2R7K.js?v=3e4bb7d2:10330
+performSyncWorkOnRoot @ chunk-KRPX2R7K.js?v=3e4bb7d2:11635
+flushSyncWorkAcrossRoots_impl @ chunk-KRPX2R7K.js?v=3e4bb7d2:11536
+processRootScheduleInMicrotask @ chunk-KRPX2R7K.js?v=3e4bb7d2:11558
+(anonymous) @ chunk-KRPX2R7K.js?v=3e4bb7d2:11649
+<MultiplayerModal>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=252791b4:250
+MainMenu @ MainMenu.tsx:139
+react-stack-bottom-frame @ chunk-KRPX2R7K.js?v=3e4bb7d2:17424
+renderWithHooks @ chunk-KRPX2R7K.js?v=3e4bb7d2:4206
+updateFunctionComponent @ chunk-KRPX2R7K.js?v=3e4bb7d2:6619
+beginWork @ chunk-KRPX2R7K.js?v=3e4bb7d2:7654
+runWithFiberInDEV @ chunk-KRPX2R7K.js?v=3e4bb7d2:1485
+performUnitOfWork @ chunk-KRPX2R7K.js?v=3e4bb7d2:10868
+workLoopSync @ chunk-KRPX2R7K.js?v=3e4bb7d2:10728
+renderRootSync @ chunk-KRPX2R7K.js?v=3e4bb7d2:10711
+performWorkOnRoot @ chunk-KRPX2R7K.js?v=3e4bb7d2:10330
+performSyncWorkOnRoot @ chunk-KRPX2R7K.js?v=3e4bb7d2:11635
+flushSyncWorkAcrossRoots_impl @ chunk-KRPX2R7K.js?v=3e4bb7d2:11536
+processRootScheduleInMicrotask @ chunk-KRPX2R7K.js?v=3e4bb7d2:11558
+(anonymous) @ chunk-KRPX2R7K.js?v=3e4bb7d2:11649
+<MainMenu>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=252791b4:250
+App @ App.tsx:383
+react-stack-bottom-frame @ chunk-KRPX2R7K.js?v=3e4bb7d2:17424
+renderWithHooks @ chunk-KRPX2R7K.js?v=3e4bb7d2:4206
+updateFunctionComponent @ chunk-KRPX2R7K.js?v=3e4bb7d2:6619
+beginWork @ chunk-KRPX2R7K.js?v=3e4bb7d2:7654
+runWithFiberInDEV @ chunk-KRPX2R7K.js?v=3e4bb7d2:1485
+performUnitOfWork @ chunk-KRPX2R7K.js?v=3e4bb7d2:10868
+workLoopSync @ chunk-KRPX2R7K.js?v=3e4bb7d2:10728
+renderRootSync @ chunk-KRPX2R7K.js?v=3e4bb7d2:10711
+performWorkOnRoot @ chunk-KRPX2R7K.js?v=3e4bb7d2:10330
+performSyncWorkOnRoot @ chunk-KRPX2R7K.js?v=3e4bb7d2:11635
+flushSyncWorkAcrossRoots_impl @ chunk-KRPX2R7K.js?v=3e4bb7d2:11536
+processRootScheduleInMicrotask @ chunk-KRPX2R7K.js?v=3e4bb7d2:11558
+(anonymous) @ chunk-KRPX2R7K.js?v=3e4bb7d2:11649
+axiosInstance.ts:32 API Error: AxiosError {message: 'Request failed with status code 401', name: 'AxiosError', code: 'ERR_BAD_REQUEST', config: {…}, request: XMLHttpRequest, …}
+overrideMethod @ hook.js:608
+(anonymous) @ axiosInstance.ts:32
+Promise.then
+_request @ axios.js?v=dfdb3c61:2288
+request @ axios.js?v=dfdb3c61:2197
+httpMethod @ axios.js?v=dfdb3c61:2334
+wrap @ axios.js?v=dfdb3c61:8
+createRoom @ RoomService.ts:26
+handleCreateRoom @ MultiplayerModal.tsx:58
+executeDispatch @ chunk-KRPX2R7K.js?v=3e4bb7d2:11736
+runWithFiberInDEV @ chunk-KRPX2R7K.js?v=3e4bb7d2:1485
+processDispatchQueue @ chunk-KRPX2R7K.js?v=3e4bb7d2:11772
+(anonymous) @ chunk-KRPX2R7K.js?v=3e4bb7d2:12182
+batchedUpdates$1 @ chunk-KRPX2R7K.js?v=3e4bb7d2:2628
+dispatchEventForPluginEventSystem @ chunk-KRPX2R7K.js?v=3e4bb7d2:11877
+dispatchEvent @ chunk-KRPX2R7K.js?v=3e4bb7d2:14792
+dispatchDiscreteEvent @ chunk-KRPX2R7K.js?v=3e4bb7d2:14773
+<button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=252791b4:250
+renderHostView @ MultiplayerModal.tsx:201
+MultiplayerModal @ MultiplayerModal.tsx:302
+react-stack-bottom-frame @ chunk-KRPX2R7K.js?v=3e4bb7d2:17424
+renderWithHooks @ chunk-KRPX2R7K.js?v=3e4bb7d2:4206
+updateFunctionComponent @ chunk-KRPX2R7K.js?v=3e4bb7d2:6619
+beginWork @ chunk-KRPX2R7K.js?v=3e4bb7d2:7654
+runWithFiberInDEV @ chunk-KRPX2R7K.js?v=3e4bb7d2:1485
+performUnitOfWork @ chunk-KRPX2R7K.js?v=3e4bb7d2:10868
+workLoopSync @ chunk-KRPX2R7K.js?v=3e4bb7d2:10728
+renderRootSync @ chunk-KRPX2R7K.js?v=3e4bb7d2:10711
+performWorkOnRoot @ chunk-KRPX2R7K.js?v=3e4bb7d2:10330
+performSyncWorkOnRoot @ chunk-KRPX2R7K.js?v=3e4bb7d2:11635
+flushSyncWorkAcrossRoots_impl @ chunk-KRPX2R7K.js?v=3e4bb7d2:11536
+processRootScheduleInMicrotask @ chunk-KRPX2R7K.js?v=3e4bb7d2:11558
+(anonymous) @ chunk-KRPX2R7K.js?v=3e4bb7d2:11649
+<MultiplayerModal>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=252791b4:250
+MainMenu @ MainMenu.tsx:139
+react-stack-bottom-frame @ chunk-KRPX2R7K.js?v=3e4bb7d2:17424
+renderWithHooks @ chunk-KRPX2R7K.js?v=3e4bb7d2:4206
+updateFunctionComponent @ chunk-KRPX2R7K.js?v=3e4bb7d2:6619
+beginWork @ chunk-KRPX2R7K.js?v=3e4bb7d2:7654
+runWithFiberInDEV @ chunk-KRPX2R7K.js?v=3e4bb7d2:1485
+performUnitOfWork @ chunk-KRPX2R7K.js?v=3e4bb7d2:10868
+workLoopSync @ chunk-KRPX2R7K.js?v=3e4bb7d2:10728
+renderRootSync @ chunk-KRPX2R7K.js?v=3e4bb7d2:10711
+performWorkOnRoot @ chunk-KRPX2R7K.js?v=3e4bb7d2:10330
+performSyncWorkOnRoot @ chunk-KRPX2R7K.js?v=3e4bb7d2:11635
+flushSyncWorkAcrossRoots_impl @ chunk-KRPX2R7K.js?v=3e4bb7d2:11536
+processRootScheduleInMicrotask @ chunk-KRPX2R7K.js?v=3e4bb7d2:11558
+(anonymous) @ chunk-KRPX2R7K.js?v=3e4bb7d2:11649
+<MainMenu>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=252791b4:250
+App @ App.tsx:383
+react-stack-bottom-frame @ chunk-KRPX2R7K.js?v=3e4bb7d2:17424
+renderWithHooks @ chunk-KRPX2R7K.js?v=3e4bb7d2:4206
+updateFunctionComponent @ chunk-KRPX2R7K.js?v=3e4bb7d2:6619
+beginWork @ chunk-KRPX2R7K.js?v=3e4bb7d2:7654
+runWithFiberInDEV @ chunk-KRPX2R7K.js?v=3e4bb7d2:1485
+performUnitOfWork @ chunk-KRPX2R7K.js?v=3e4bb7d2:10868
+workLoopSync @ chunk-KRPX2R7K.js?v=3e4bb7d2:10728
+renderRootSync @ chunk-KRPX2R7K.js?v=3e4bb7d2:10711
+performWorkOnRoot @ chunk-KRPX2R7K.js?v=3e4bb7d2:10330
+performSyncWorkOnRoot @ chunk-KRPX2R7K.js?v=3e4bb7d2:11635
+flushSyncWorkAcrossRoots_impl @ chunk-KRPX2R7K.js?v=3e4bb7d2:11536
+processRootScheduleInMicrotask @ chunk-KRPX2R7K.js?v=3e4bb7d2:11558
+(anonymous) @ chunk-KRPX2R7K.js?v=3e4bb7d2:11649
+RoomService.ts:15 [RoomService] [2025-10-13T10:13:18.524Z] createRoom: Error AxiosError {message: 'Request failed with status code 401', name: 'AxiosError', code: 'ERR_BAD_REQUEST', config: {…}, request: XMLHttpRequest, …}
+AuthContext.tsx:73 Login successful - User data: {id: '04a9fcef-68a6-4e14-947c-d380d488920a', username: 'qweqwe', email: 'qwe@qwe.com', passwordHash: '$2a$10$.a4on0V5gqXzRrRczZSR4OfhD81j6TXuiWaYZ9PZpXfcxYz6WX.IK', provider: null, …}
+AuthContext.tsx:74 Token received: eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJxd2Vxd2UiLCJpYXQiOjE3NjAzNTA0MjYsImV4cCI6MTc2MDM1NzYyNn0.QXwjeoLr5jszehg_KKigRHedjxJq88CR1QxcIXeBQ-Zj2L4BpjVecvgjpTkxJAmNUySsl_obSq_j7Lhj3222WKt2HVjBwP6qFmTzUfpJ2whPy-W4gUlEPwOOGth1Py3hFC2fbymldRP76SAoRhDII9crhC-Yql_wStTLb-45jrchgPyn1WdtBEjlU76RM77EdEsLbS7vPtfk_16tRB14HJPh5-Q95HPOTneSvw1G6XH6JHe2UqVdD_gSMslCdYNiTpOruJdthCrUUCGuumafF-vQRjLqnWBgOhRfh2y_HjKr_9k87-nnDCIfM0PLzOgIZB72gOm8aW-u1YbmPpeXdA
+AuthContext.tsx:87 Auth state after login: {user: {…}, isAuthenticated: true}
+RoomService.ts:15 [RoomService] [2025-10-13T10:13:54.506Z] createRoom: Starting request {ownerId: '04a9fcef-68a6-4e14-947c-d380d488920a', roomData: {…}}
+RoomService.ts:15 [RoomService] [2025-10-13T10:13:55.035Z] createRoom: Success {roomId: 'eda89641-e0c5-4006-8c3d-246707295096', code: '9E5D4A81EDEC'}
+--bug1--
+--bug2--
+The user gets added to the local tables but not dp_authentication,
+When creating user i get error:
+Failed to load resource: the server responded with a status of 500 ()
+hook.js:608 API Error: 
+AxiosError
+code
+: 
+"ERR_BAD_RESPONSE"
+config
+: 
+{transitional: {…}, adapter: Array(3), transformRequest: Array(1), transformResponse: Array(1), timeout: 10000, …}
+message
+: 
+"Request failed with status code 500"
+name
+: 
+"AxiosError"
+request
+: 
+XMLHttpRequest {onreadystatechange: null, readyState: 4, timeout: 10000, withCredentials: false, upload: XMLHttpRequestUpload, …}
+response
+: 
+{data: {…}, status: 500, statusText: '', headers: AxiosHeaders, config: {…}, …}
+status
+: 
+500
+stack
+: 
+"AxiosError: Request failed with status code 500\n    at settle (http://localhost:5173/node_modules/.vite/deps/axios.js?v=fccc56ea:1257:12)\n    at XMLHttpRequest.onloadend (http://localhost:5173/node_modules/.vite/deps/axios.js?v=fccc56ea:1593:7)\n    at Axios.request (http://localhost:5173/node_modules/.vite/deps/axios.js?v=fccc56ea:2201:41)\n    at async Object.mutationFn (http://localhost:5173/src/Auth/AuthContext.tsx:105:24)"
+[[Prototype]]
+: 
+Error
+hook.js:608 Registration error in AuthModal: 
+AxiosError
+index.js:120 Uncaught Error: Invalid argument not valid semver ('' received)
+    at activateBackend (backendManager.js:1:13128)
+    at backendManager.js:1:14182
+
+--bug2--
+
+TODO:
+Loading states - Spinners and Darken during submission
+Debug storage - Tokens in cookies, guest data in localStorage
+Midiplus
+Custom Toast Notifications
+Custom favIcon
+Error Boundaries?
+
+TEST:
+Keyboard preference - 'Casio' or 'Midiplus' selection
+Google OAuth
+Facebook OAuth
+All Toast system (make list of all, then test)
+
+Open SettingsModal → See keyboard preference options
+Select "Casio" or "Midiplus" → Preference saved
+Close and reopen SettingsModal → Preference persists
+Test as guest user → Keyboard preference still works
+
+
+
+// my old plan for the menu:
 initial loading screen:
 Tiny video in the top of the Duo going over to sit down at the piano (actualy dont make it a video, use the 3d models)
 Circular Loading in the middle

@@ -1,4 +1,4 @@
-// src/Auth/AuthModal.module.scss
+// Auth/AuthModal.module.scss
 @use '../styles/vars' as *;
 @use '../styles/mixins' as *;
 
@@ -8,8 +8,8 @@
 
 .modalContent {
   @include magical-card();
-  text-align: center;
-  position: relative;
+  max-width: 450px;
+  width: 90%;
 }
 
 .closeButton {
@@ -31,7 +31,6 @@
   padding: 0;
   margin: 0;
 
-  
   &:hover {
     background: rgba(255, 255, 255, 0.3);
   }
@@ -39,30 +38,48 @@
 
 .tabs {
   display: flex;
-  justify-content: center;
   margin-bottom: $spacing-lg;
-  gap: $spacing-md;
+  border-radius: $radius-md;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 4px;
+  gap: 4px;
 }
 
 .tab {
+  flex: 1;
   padding: $spacing-sm $spacing-md;
-  font-size: 1.1rem;
+  background: none;
+  border: none;
+  border-radius: $radius-sm;
+  cursor: pointer;
   font-weight: 600;
   color: $twilight-purple;
-  background: transparent;
-  border: 2px solid transparent;
-  border-radius: $radius-full;
-  cursor: pointer;
   transition: all $duration-normal $easing-ease;
-  
-  &:hover {
-    background: rgba(255, 255, 255, 0.3);
+
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.8);
   }
-  
+
   &.active {
-    background: linear-gradient(45deg, $magic-pink, $starlight-blue);
+    background: linear-gradient(45deg, $magic-pink, $galaxy-purple);
     color: white;
-    border-color: $magic-pink;
+    box-shadow: $shadow-light;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.formContainer {
+  position: relative;
+  min-height: 400px;
+}
+
+.formContent {
+  &.visible {
+    display: block;
   }
 }
 
@@ -70,6 +87,7 @@
   display: flex;
   flex-direction: column;
   gap: $spacing-md;
+  margin-bottom: $spacing-lg;
 }
 
 .inputGroup {
@@ -88,104 +106,203 @@
 .input {
   @include magical-input();
   padding: $spacing-sm $spacing-md;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &.error {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1);
+  }
 }
 
 .checkboxContainer {
   display: flex;
   align-items: center;
   gap: $spacing-sm;
-  margin-top: $spacing-sm;
+  margin: $spacing-sm 0;
+
+  .rememberMe {
+    position: relative;
+    cursor: pointer;
+
+    &:hover .tooltip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+  }
+
+  .tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: -50%;
+    background: #333;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    pointer-events: none;
+    z-index: 1000;
+  }
+
 }
 
 .checkbox {
   width: 18px;
   height: 18px;
-  accent-color: $magic-pink;
+  border-radius: 4px;
+  border: 2px solid $twilight-purple;
+  background: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+
+  &:checked {
+    background: linear-gradient(45deg, $magic-pink, $galaxy-purple);
+    border-color: transparent;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 }
 
 .rememberMe {
   color: $twilight-purple;
   font-size: 0.9rem;
+  cursor: pointer;
 }
 
 .submitButton {
   @include magical-button();
-  background: linear-gradient(45deg, $magic-pink, $galaxy-purple);
-  color: white;
-  margin-top: $spacing-md;
   padding: $spacing-md;
   font-size: 1.1rem;
-  
+  font-weight: 600;
+  background: linear-gradient(45deg, $magic-pink, $starlight-blue);
+  color: white;
+  border: none;
+
   &:hover:not(:disabled) {
     border-color: transparent;
+    transform: translateY(-2px);
   }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+.loadingSpinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .socialButtons {
   display: flex;
   flex-direction: column;
   gap: $spacing-sm;
-  margin-top: $spacing-lg;
-  padding-top: $spacing-lg;
-  border-top: 1px solid rgba(139, 0, 139, 0.2);
+  margin-bottom: $spacing-lg;
 }
 
 .socialButton {
   @include magical-button();
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: $spacing-md;
-  background: white;
-  color: $midnight-blue;
-  
+  padding: $spacing-sm;
+  font-size: 1rem;
+  border: 2px solid rgba(139, 0, 139, 0.3);
+  background: rgba(255, 255, 255, 0.8);
+  color: $twilight-purple;
+
   &.google {
-    background: linear-gradient(45deg, #4285f4, #34a853, #fbbc05, #ea4335);
+    background: linear-gradient(45deg, #4285F4, #34A853);
     color: white;
+    border-color: transparent;
   }
-  
+
   &.facebook {
-    background: linear-gradient(45deg, #3b5998, #4267b2);
+    background: linear-gradient(45deg, #1877F2, #3B5998);
     color: white;
+    border-color: transparent;
+  }
+
+  &:hover:not(:disabled) {
+    border-color: transparent;
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
   }
 }
 
 .switchText {
-  margin-top: $spacing-md;
+  text-align: center;
   color: $twilight-purple;
   font-size: 0.9rem;
-  
-  button {
-    background: none;
-    border: none;
-    color: $magic-pink;
-    font-weight: 600;
-    cursor: pointer;
-    text-decoration: underline;
-    padding: 0;
-    margin-left: 4px;
-    
-    &:hover {
-      text-decoration: none;
-    }
+}
+
+.switchButton {
+  background: none;
+  border: none;
+  color: $magic-pink;
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: underline;
+  transition: color $duration-normal $easing-ease;
+
+  &:hover:not(:disabled) {
+    color: $galaxy-purple;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 }
 
-// Animations for form switching
-.formContainer {
-  overflow: hidden;
+.errorMessage {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  display: block;
 }
 
-.formContent {
-  transition: transform $duration-normal $easing-ease, opacity $duration-normal $easing-ease;
-}
+// Responsive
+@media (max-width: 480px) {
+  .modalContent {
+    padding: $spacing-lg;
+  }
 
-.formContent.hidden {
-  opacity: 0;
-  transform: translateY(20px);
-}
+  .tabs {
+    flex-direction: column;
+  }
 
-.formContent.visible {
-  opacity: 1;
-  transform: translateY(0);
+  .socialButtons {
+    gap: $spacing-xs;
+  }
 }

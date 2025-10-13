@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three-stdlib';
 import { useSetAtom } from 'jotai';
 import { modelsAtom } from '../atoms/models';
 import { Text } from '@react-three/drei';
-import { getSharedDracoLoader } from '../pianoHelpers';
+import { getSharedDracoLoader } from '../lib/pianoHelpers';
 import * as THREE from 'three';
 
 const DEBUG = false;

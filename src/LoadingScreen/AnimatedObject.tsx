@@ -1,9 +1,9 @@
-// AnimatedObject.tsx - Fixed version
+// AnimatedObject.tsx
 import { useEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { GLTFLoader } from "three-stdlib";
 import * as THREE from "three";
-import { getSharedDracoLoader } from '../pianoHelpers';
+import { getSharedDracoLoader } from '../lib/pianoHelpers';
 
 const DEBUG = false;
 
@@ -13,7 +13,8 @@ export default function AnimatedObject({
   rotation = [0, 0, 0],
   scale = 1,
   startFrame = 0,
-  shouldAnimate = true
+  shouldAnimate = true,
+  speed = 1,
 }: {
   url: string;
   position?: [number, number, number];
@@ -21,7 +22,8 @@ export default function AnimatedObject({
   startFrame?: number;
   endFrame?: number;
   shouldAnimate?: boolean;
-  rotation: [number, number, number]
+  rotation: [number, number, number];
+  speed?: number;
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const [gltf, setGltf] = useState<any>(null);
@@ -44,8 +46,26 @@ export default function AnimatedObject({
       url,
       (loaded) => {
         if(DEBUG) console.log(`[ANIMATED OBJECT] ✅ Loaded: ${url}`, loaded);
-        console.log('Animations found:', loaded.animations.length);
-        console.log('Animation names:', loaded.animations.map((anim: any) => anim.name));
+        if(DEBUG) console.log('Animations found:', loaded.animations.length);
+        if(DEBUG) console.log('Animation names:', loaded.animations.map((anim: any) => anim.name));
+
+        // Debug: Log all scene contents
+        if(DEBUG) console.log(`📦 Scene children for ${url}:`, loaded.scene.children.length);
+        loaded.scene.traverse((child: any) => {
+          if(DEBUG) console.log(`  - ${child.name} [${child.type}] visible:${child.visible}`);
+        });
+
+        let meshCount = 0;
+        loaded.scene.traverse((child: any) => {
+          if (child.isMesh) {
+            meshCount++;
+            if(DEBUG) console.log(`📦 Mesh found: ${child.name}`);
+            if(DEBUG) console.log(`   - Material:`, child.material?.name);
+            if(DEBUG) console.log(`   - Skeleton:`, child.skeleton);
+          }
+        });
+
+        if(DEBUG) console.log(`🎯 Total meshes: ${meshCount}`);
 
         setGltf(loaded);
         //setLoading(false);
@@ -94,6 +114,11 @@ export default function AnimatedObject({
   useFrame((_, delta) => {
     if (!mixerRef.current || !shouldAnimate) return;
 
+    const speedAdjustedDelta = delta * speed;
+    const slowDelta = speedAdjustedDelta;
+
+    mixerRef.current.update(slowDelta);
+
     // For title animation with custom start frame, we need to manually control the time
     if (url.includes('title') && animationStartTimeRef.current !== null) {
       // Get the current time from the first action
@@ -124,6 +149,11 @@ export default function AnimatedObject({
   return (
     <group ref={groupRef} position={position} rotation={rotation} scale={scale}>
       <primitive object={gltf.scene} />
+      {DEBUG && gltf.scene && (
+        <box3Helper
+          args={[new THREE.Box3().setFromObject(gltf.scene), 0xffff00]}
+        />
+      )}
     </group>
   );
 }

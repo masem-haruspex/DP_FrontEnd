@@ -16,6 +16,14 @@ import { useAuth } from './Auth/AuthContext';
 import { WebSocketService } from './Multiplayer/WebSocketService';
 import MultiplayerRoom from './Multiplayer/MultiplayerRoom';
 
+// State management for OAuth
+import { useSetAtom } from 'jotai';
+import { toastsAtom } from './atoms/toast';
+import { authAtom, preferredKeyboardAtom } from './atoms/auth';
+import axiosInstance from './lib/axiosInstance';
+import { setCookie } from './lib/cookies';
+import { useQueryClient } from '@tanstack/react-query';
+
 const DEBUG = false;
 
 function VisibilityController() {
@@ -97,6 +105,12 @@ export default function App() {
   const [multiplayerPlayers, setMultiplayerPlayers] = useState<any[]>([]);
 
   const { user } = useAuth();
+
+  const setAuth = useSetAtom(authAtom);
+  const setPreferredKeyboard = useSetAtom(preferredKeyboardAtom);
+  const setToasts = useSetAtom(toastsAtom);
+  const queryClient = useQueryClient();
+  const rememberMe = false;
 
   const initializeAudio = useCallback(async () => {
     try {
@@ -204,23 +218,74 @@ const handleMultiplayerRoom = async (roomCode: string) => {
     setShowMainMenu(true);
   }
 
-  // For handling OAuth2 redirect with token
   useEffect(() => {
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const token = hashParams.get("token");
-    const error = hashParams.get("error");
+  const hashParams = new URLSearchParams(window.location.hash.substring(1));
+  const token = hashParams.get("token");
+  const userData = hashParams.get("user");
+  const error = hashParams.get("error");
 
-    if (token) {
-      localStorage.setItem("token", token);
-      console.log("Oauth login successfully!");
-      window.history.replaceState({}, document.title, window.location.pathname);
-      handleStraightToMenu();
+  const handleSuccess = async (token: string, user: any) => {
+    const expiresInDays = rememberMe ? 365 : 0;
+    setCookie("token", token, expiresInDays);
 
-    } else if (error) {
-      console.error("OAuth2 login failed:", error);
-      handleStraightToMenu();
+    if (user) {
+      localStorage.setItem("user", JSON.stringify(user));
     }
-  }, []);
+
+    setAuth({
+      user,
+      token,
+      isLoading: false,
+      isAuthenticated: true,
+    });
+
+    axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    queryClient.invalidateQueries({ queryKey: ["user"] });
+
+    if (user?.preferredKeyboard) {
+      setPreferredKeyboard(user.preferredKeyboard);
+    }
+
+    setToasts(prev => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        message: "OAuth login successful!",
+        type: "success",
+        duration: 3000,
+      },
+    ]);
+
+    console.log("OAuth login successfully!");
+    window.history.replaceState({}, document.title, window.location.pathname);
+    handleStraightToMenu();
+  };
+
+  const handleError = (msg: string) => {
+    console.error("OAuth2 login failed:", msg);
+    setToasts(prev => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        message: msg || "OAuth2 login failed",
+        type: "error",
+        duration: 5000,
+      },
+    ]);
+    handleStraightToMenu();
+  };
+
+  if (token) {
+    try {
+      const user = userData ? JSON.parse(decodeURIComponent(userData)) : null;
+      handleSuccess(token, user);
+    } catch (err) {
+      handleError("Failed to process user data");
+    }
+  } else if (error) {
+    handleError(error);
+  }
+}, []);
 
   // WebSocket cleanup
   useEffect(() => {

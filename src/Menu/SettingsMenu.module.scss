@@ -1,4 +1,4 @@
-// Settings/SettingsModal.module.scss
+// Menu/SettingsMenu.module.scss
 @use '../styles/vars' as *;
 @use '../styles/mixins' as *;
 
@@ -14,40 +14,11 @@
   overflow-y: auto;
 }
 
-.closeButton {
-  position: absolute;
-  top: $spacing-sm;
-  right: $spacing-sm;
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  color: $twilight-purple;
-  cursor: pointer;
-  border-radius: $radius-full;
-  transition: all $duration-normal $easing-ease;
-  width: 32px;
-  aspect-ratio: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.menuTitle {
+  @include magical-title();
   padding: 0;
   margin: 0;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.3);
-  }
-}
-
-.modalTitle {
-  font-family: 'Segoe UI', 'Cursive', sans-serif;
-  font-size: 2.5rem;
-  margin-bottom: $spacing-xl;
-  color: $twilight-purple;
-  background: linear-gradient(45deg, $magic-pink, $galaxy-purple);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-size: 3rem;
 }
 
 .settingsSection {
@@ -169,17 +140,6 @@ input:disabled + .slider {
 
 .backButton {
   @include magical-button();
-  width: 100%;
-  padding: $spacing-sm;
-  font-size: 1rem;
-  background: linear-gradient(45deg, $twilight-purple, $galaxy-purple);
-  color: white;
-  margin-top: $spacing-lg;
-
-  &:hover:not(:disabled) {
-    border-color: transparent;
-    transform: translateY(-2px);
-  }
 }
 
 // Responsive

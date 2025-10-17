@@ -2,19 +2,21 @@
 import { Stats } from '@react-three/drei';
 import { Canvas, useThree } from '@react-three/fiber';
 import { useCallback, useEffect, useState } from 'react';
+import { useAtom } from 'jotai';
 import Camera from './Camera/Camera';
 import { BloomScene } from "./Keyboard/MusicNote";
 import LoadingScreen from './LoadingScreen/LoadingScreen';
 import Preloader from './Preloader/Preloader';
+import Keyboard from './Keyboard/Keyboard';
 import MainMenu from './Menu/MainMenu';
 import { degreesToRad } from './lib/pianoHelpers';
 import AnimatedObject from './LoadingScreen/AnimatedObject';
 import styles from './App.module.scss';
 import SinglePlayer from './SinglePlayer/SinglePlayer';
-import Keyboard from './Keyboard/Keyboard';
 import { useAuth } from './Auth/AuthContext';
 import { WebSocketService } from './Multiplayer/WebSocketService';
 import MultiplayerRoom from './Multiplayer/MultiplayerRoom';
+import { menuStateAtom, cameraRotationAtom, cameraPositionAtom, markIntroAnimationsPlayedAtom } from './atoms/menuState';
 
 // State management for OAuth
 import { useSetAtom } from 'jotai';
@@ -106,6 +108,11 @@ export default function App() {
 
   const { user } = useAuth();
 
+  const [menuState] = useAtom(menuStateAtom);
+  const [cameraRotation] = useAtom(cameraRotationAtom);
+  const [cameraPosition] = useAtom(cameraPositionAtom);
+  const [, markIntroAnimationsPlayed] = useAtom(markIntroAnimationsPlayedAtom);
+
   const setAuth = useSetAtom(authAtom);
   const setPreferredKeyboard = useSetAtom(preferredKeyboardAtom);
   const setToasts = useSetAtom(toastsAtom);
@@ -177,31 +184,31 @@ export default function App() {
     setShowMainMenu(true);
   };
 
-const handleMultiplayerRoom = async (roomCode: string) => {
-  setShowMainMenu(false);
-  setCurrentMultiplayerRoom(roomCode);
+  const handleMultiplayerRoom = async (roomCode: string) => {
+    setShowMainMenu(false);
+    setCurrentMultiplayerRoom(roomCode);
 
-  if (user) {
-    const token = localStorage.getItem('token');
-    const wsService = new WebSocketService();
+    if (user) {
+      const token = localStorage.getItem('token');
+      const wsService = new WebSocketService();
 
-    try {
-      await wsService.connect(roomCode, user.id, token || '');
-      setWebSocketService(wsService);
+      try {
+        await wsService.connect(roomCode, user.id, token || '');
+        setWebSocketService(wsService);
 
-      setMultiplayerPlayers([{
-        id: user.id,
-        username: user.username || 'You',
-        position: [0, -8, -16] as [number, number, number],
-        preferredKeyboard: user.preferredKeyboard || 'Casio'
-      }]);
-    } catch (error) {
-      console.error('Failed to connect WebSocket:', error);
-      setShowMainMenu(true);
-      setCurrentMultiplayerRoom(null);
+        setMultiplayerPlayers([{
+          id: user.id,
+          username: user.username || 'You',
+          position: [0, -8, -16] as [number, number, number],
+          preferredKeyboard: user.preferredKeyboard || 'Casio'
+        }]);
+      } catch (error) {
+        console.error('Failed to connect WebSocket:', error);
+        setShowMainMenu(true);
+        setCurrentMultiplayerRoom(null);
+      }
     }
-  }
-};
+  };
 
   const handleLeaveMultiplayer = () => {
     setCurrentMultiplayerRoom(null);
@@ -217,6 +224,12 @@ const handleMultiplayerRoom = async (roomCode: string) => {
     setHasUserInteracted(true);
     setShowMainMenu(true);
   }
+
+  useEffect(() => {
+    if (animationComplete && !menuState.introAnimationsPlayed) {
+      markIntroAnimationsPlayed();
+    }
+  }, [animationComplete, menuState.introAnimationsPlayed, markIntroAnimationsPlayed]);
 
   useEffect(() => {
   const hashParams = new URLSearchParams(window.location.hash.substring(1));
@@ -287,7 +300,6 @@ const handleMultiplayerRoom = async (roomCode: string) => {
   }
 }, []);
 
-  // WebSocket cleanup
   useEffect(() => {
     return () => {
       if (webSocketService) {
@@ -296,13 +308,11 @@ const handleMultiplayerRoom = async (roomCode: string) => {
     };
   }, [webSocketService]);
 
-  // Listen for player join/leave events in multiplayer
   useEffect(() => {
     if (!webSocketService || !currentMultiplayerRoom) return;
 
     const handlePlayerJoined = (playerData: any) => {
       setMultiplayerPlayers(prev => {
-        // Don't add if player already exists
         if (prev.some(p => p.id === playerData.id)) return prev;
         return [...prev, playerData];
       });
@@ -332,19 +342,27 @@ const handleMultiplayerRoom = async (roomCode: string) => {
   const isLoading = hasUserInteracted && (!modelsLoaded || !animationComplete);
 
   useEffect(() => {
-    if (DEBUG) {
-      console.log('[APP] Checking completion status:', {
-        modelsLoaded,
-        animationComplete,
-        audioInitialized
-      });
-    }
+  if (DEBUG) {
+    console.log('[APP] Checking completion status:', {
+      modelsLoaded,
+      animationComplete,
+      audioInitialized,
+      showMainMenu,
+      showSinglePlayer,
+      currentMultiplayerRoom,
+    });
+  }
 
-    if (modelsLoaded && animationComplete && audioInitialized && !showMainMenu && !showSinglePlayer && !currentMultiplayerRoom) {
-      if (DEBUG) console.log('[APP] All conditions met, calling handleLoadingComplete');
-      handleLoadingComplete();
-    }
-  }, [modelsLoaded, animationComplete, audioInitialized, showMainMenu, showSinglePlayer, currentMultiplayerRoom, handleLoadingComplete]);
+    if(showMainMenu && !showSinglePlayer && !currentMultiplayerRoom)
+      console.log("MAIN MENU DISPLAYED");
+    else
+      console.log("MAIN MENU NOT");
+
+  if (modelsLoaded && animationComplete && audioInitialized && !showMainMenu && !showSinglePlayer && !currentMultiplayerRoom) {
+    if (DEBUG) console.log('[APP] All conditions met, calling handleLoadingComplete');
+    handleLoadingComplete();
+  }
+}, [modelsLoaded, animationComplete, audioInitialized, showMainMenu, showSinglePlayer, currentMultiplayerRoom, handleLoadingComplete]);
 
   if (!hasUserInteracted) {
     return (
@@ -396,7 +414,7 @@ const handleMultiplayerRoom = async (roomCode: string) => {
       >
         <SceneDebugger />
         <VisibilityController />
-        <Camera />
+        <Camera rotation={cameraRotation} position={cameraPosition} />
 
         <BloomScene>
           {debug && <Stats />}
@@ -415,7 +433,6 @@ const handleMultiplayerRoom = async (roomCode: string) => {
             />
           )}
 
-          {/* Multiplayer Keyboards - Only show actual players */}
           {currentMultiplayerRoom && modelsLoaded && multiplayerPlayers.map((player) => (
             <Keyboard
               key={player.id}
@@ -429,21 +446,31 @@ const handleMultiplayerRoom = async (roomCode: string) => {
           ))}
 
           {showAnimatedModels && (
-            <group position={[-1, 0.8, -3]} rotation={[degreesToRad(18), degreesToRad(0), degreesToRad(0)] }>
-              <AnimatedObject
-                url="/models/loading/cat_black2.glb"
-                position={[3, 1, 1]}
-                rotation={[0, 0, 0]}
-                scale={1.2}
-                speed={0.2}
-              />
-              <AnimatedObject
-                url="/models/loading/cat_tuxedo2.glb"
-                position={[3, 1, 1]}
-                rotation={[0, 0, 0]}
-                scale={1.2}
-                speed={0.2}
-              />
+            <group position={[-1, 0.8, -3]} rotation={[degreesToRad(28), degreesToRad(0), degreesToRad(0)]}>
+              {(menuState.selectedCat === 'both' || menuState.selectedCat === 'black') && (
+                <AnimatedObject
+                  url="/models/loading/cat_black.glb"
+                  position={[3, 1, 1]}
+                  rotation={[0, 0, 0]}
+                  scale={1.2}
+                  introAnimationName={"black_cat_duo_piano_loading"}
+                  loopAnimationName="black_playing"
+                  shouldLoop={true}
+                />
+              )}
+
+              {(menuState.selectedCat === 'both' || menuState.selectedCat === 'tuxedo') && (
+                <AnimatedObject
+                  url="/models/loading/cat_tuxedo.glb"
+                  position={[3, 1, 1]}
+                  rotation={[0, 0, 0]}
+                  scale={1.2}
+                  introAnimationName={"tuxedo_cat_duo_piano_loading"}
+                  loopAnimationName="tuxedo_playing"
+                  shouldLoop={true}
+                />
+              )}
+
               <AnimatedObject
                 url="/models/loading/piano.glb"
                 position={[3, 1, 1]}
@@ -451,16 +478,18 @@ const handleMultiplayerRoom = async (roomCode: string) => {
                 scale={1.0}
                 shouldAnimate={false}
               />
-              <AnimatedObject
-                url="/models/loading/title.glb"
-                position={[2, 1.0, 1]}
-                rotation={[0, 0, 0]}
-                scale={1}
-                shouldAnimate
-                speed={0.3}
-              />
+
+                <AnimatedObject
+                  url="/models/loading/title.glb"
+                  position={[2, 1.0, 1]}
+                  rotation={[0, 0, 0]}
+                  scale={1}
+                  shouldAnimate={true}
+                  introAnimationName="TextAction"
+                />
             </group>
           )}
+
 
         </BloomScene>
       </Canvas>

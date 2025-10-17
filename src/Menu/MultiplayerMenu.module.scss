@@ -1,4 +1,4 @@
-// src/Multiplayer/MultiplayerModal.module.scss
+// Menu/MultiplayerMenu.module.scss
 @use '../styles/vars' as *;
 @use '../styles/mixins' as *;
 
@@ -15,8 +15,6 @@
 
 .closeButton {
   position: absolute;
-  top: $spacing-sm;
-  right: $spacing-sm;
   background: none;
   border: none;
   font-size: 1.5rem;
@@ -38,15 +36,8 @@
 }
 
 .modalTitle {
-  font-family: 'Segoe UI', 'Cursive', sans-serif;
-  font-size: 2.5rem;
-  margin-bottom: $spacing-xl;
-  color: $twilight-purple;
-  background: linear-gradient(45deg, $magic-pink, $galaxy-purple);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  @include magical-title();
+  font-size: 3.0rem;
 }
 
 .form {
@@ -82,18 +73,17 @@
 
 .actionButton {
   @include magical-button();
-  padding: $spacing-md;
   font-size: 1.1rem;
   font-weight: 600;
   
   &.join {
-    background: linear-gradient(45deg, $magic-pink, $starlight-blue);
-    color: white;
+    //background: linear-gradient(45deg, $magic-pink, $starlight-blue);
+    //color: white;
   }
   
   &.host {
-    background: linear-gradient(45deg, $galaxy-purple, $cosmic-gold);
-    color: white;
+    //background: linear-gradient(45deg, $galaxy-purple, $cosmic-gold);
+    //color: white;
   }
   
   &:hover:not(:disabled) {
@@ -103,15 +93,4 @@
 
 .backButton {
   @include magical-button();
-  width: 100%;
-  padding: $spacing-sm;
-  font-size: 1rem;
-  background: linear-gradient(45deg, $twilight-purple, $galaxy-purple);
-  color: white;
-  margin-top: $spacing-md;
-  
-  &:hover:not(:disabled) {
-    border-color: transparent;
-    transform: translateY(-2px);
-  }
 }

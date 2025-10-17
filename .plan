@@ -182,7 +182,6 @@ AxiosError
 index.js:120 Uncaught Error: Invalid argument not valid semver ('' received)
     at activateBackend (backendManager.js:1:13128)
     at backendManager.js:1:14182
-
 --bug2--
 
 TODO:

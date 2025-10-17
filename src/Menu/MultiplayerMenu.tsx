@@ -1,22 +1,22 @@
-// Multiplayer/MultiplayerModal.tsx
+// Multiplayer/MultiplayerMenu.tsx
 import { useState } from 'react';
 import { useAtom } from 'jotai';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../Auth/AuthContext';
 import { protectedRouteAttemptAtom, loginNeededModalAtom } from '../atoms/auth';
-import { CreateRoomSchema, type CreateRoomData, type Room } from './Room';
-import styles from './MultiplayerModal.module.scss';
+import { CreateRoomSchema, type CreateRoomData, type Room } from '../Multiplayer/Room';
+import styles from './MultiplayerMenu.module.scss';
 import * as z from 'zod';
-import { RoomService } from './RoomService';
+import { RoomService } from '../Multiplayer/RoomService';
 
 type ModalView = 'main' | 'host' | 'room-created';
 
-interface MultiplayerModalProps {
-  onClose: () => void;
+interface MultiplayerMenuProps {
+  onBack: () => void;
   onRoomCreated: (roomCode: string) => void;
 }
 
-export default function MultiplayerModal({ onClose, onRoomCreated }: MultiplayerModalProps) {
+export default function MultiplayerMenu({ onBack, onRoomCreated }: MultiplayerMenuProps) {
   const [roomCode, setRoomCode] = useState('');
   const [roomPassword, setRoomPassword] = useState('');
   const [currentView, setCurrentView] = useState<ModalView>('main');
@@ -36,26 +36,26 @@ export default function MultiplayerModal({ onClose, onRoomCreated }: Multiplayer
   });
 
   const handleJoinRoom = async () => {
-  console.log('Join Room:', { roomCode, roomPassword });
-  try {
-    if (!user) {
-      // Handle authentication
-      return;
-    }
+    console.log('Join Room:', { roomCode, roomPassword });
+    try {
+      if (!user) {
+        // Handle authentication
+        return;
+      }
 
-    await RoomService.joinRoom(roomCode, user.id, roomPassword || undefined);
-    onRoomCreated(roomCode);
-  } catch (error) {
-    console.error('Failed to join room:', error);
-    // TODO: Show toast error to user
-  }
-};
+      await RoomService.joinRoom(roomCode, user.id, roomPassword || undefined);
+      onRoomCreated(roomCode);
+    } catch (error) {
+      console.error('Failed to join room:', error);
+      // TODO: Show toast error to user
+    }
+  };
 
   const handleHostRoomClick = () => {
     if (!isAuthenticated) {
       setProtectedRouteAttempt('/host-room');
       setShowLoginNeededModal(true);
-      onClose();
+      //onBack();
       return;
     }
     setCurrentView('host');
@@ -107,53 +107,52 @@ export default function MultiplayerModal({ onClose, onRoomCreated }: Multiplayer
   };
 
   const renderMainView = () => (
-  <motion.div
-    key="main"
-    initial={{ opacity: 0, x: -20 }}
-    animate={{ opacity: 1, x: 0 }}
-    exit={{ opacity: 0, x: 20 }}
-    transition={{ duration: 0.2 }}
-  >
-    <form className={styles.form} onSubmit={(e) => { e.preventDefault(); handleJoinRoom(); }}>
-      <div className={styles.inputGroup}>
-        <label className={styles.label}>Room Code</label>
-        <input
-          type="text"
-          className={styles.input}
-          value={roomCode}
-          onChange={(e) => setRoomCode(e.target.value)}
-          placeholder="Enter room code"
-          required
-        />
-      </div>
+    <motion.div
+      key="main"
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 20 }}
+      transition={{ duration: 0.2 }}
+    >
+      <form className={styles.form} onSubmit={(e) => { e.preventDefault(); handleJoinRoom(); }}>
+        <div className={styles.inputGroup}>
+          <label className={styles.label}>Room Code</label>
+          <input
+            type="text"
+            className={styles.input}
+            value={roomCode}
+            onChange={(e) => setRoomCode(e.target.value)}
+            placeholder="Enter room code"
+            required
+          />
+        </div>
 
-      <div className={styles.inputGroup}>
-        <label className={styles.label}>Room Password (if private)</label>
-        <input
-          type="password"
-          className={styles.input}
-          value={roomPassword}
-          onChange={(e) => setRoomPassword(e.target.value)}
-          placeholder="Enter password (if room is private)"
-        />
-      </div>
+        <div className={styles.inputGroup}>
+          <label className={styles.label}>Room Password (if private)</label>
+          <input
+            type="password"
+            className={styles.input}
+            value={roomPassword}
+            onChange={(e) => setRoomPassword(e.target.value)}
+            placeholder="Enter password (if room is private)"
+          />
+        </div>
 
-      <div className={styles.actionButtons}>
-        <button type="submit" className={`${styles.actionButton} ${styles.join}`}>
-          Join Room
-        </button>
-        <button
-          type="button"
-          className={`${styles.actionButton} ${styles.host}`}
-          onClick={handleHostRoomClick}
-        >
-          Host Room
-        </button>
-      </div>
-    </form>
-  </motion.div>
-);
-
+        <div className={styles.actionButtons}>
+          <button type="submit" className={`${styles.actionButton} ${styles.join}`}>
+            Join Room
+          </button>
+          <button
+            type="button"
+            className={`${styles.actionButton} ${styles.host}`}
+            onClick={handleHostRoomClick}
+          >
+            Host Room
+          </button>
+        </div>
+      </form>
+    </motion.div>
+  );
 
   const renderHostView = () => (
     <motion.div
@@ -316,26 +315,20 @@ export default function MultiplayerModal({ onClose, onRoomCreated }: Multiplayer
   };
 
   return (
-    <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-        <button className={styles.closeButton} onClick={onClose}>
-          ✕
+    <>
+      <h2 className={styles.modalTitle}>{getModalTitle()}</h2>
+
+      <AnimatePresence mode="wait">
+        {currentView === 'main' && renderMainView()}
+        {currentView === 'host' && renderHostView()}
+        {currentView === 'room-created' && renderRoomCreatedView()}
+      </AnimatePresence>
+
+      {currentView === 'main' && (
+        <button className={styles.backButton} onClick={onBack}>
+          ← Back to Menu
         </button>
-
-        <h2 className={styles.modalTitle}>{getModalTitle()}</h2>
-
-        <AnimatePresence mode="wait">
-          {currentView === 'main' && renderMainView()}
-          {currentView === 'host' && renderHostView()}
-          {currentView === 'room-created' && renderRoomCreatedView()}
-        </AnimatePresence>
-
-        {currentView === 'main' && (
-          <button className={styles.backButton} onClick={onClose}>
-            ← Back to Menu
-          </button>
-        )}
-      </div>
-    </div>
+      )}
+    </>
   );
 }

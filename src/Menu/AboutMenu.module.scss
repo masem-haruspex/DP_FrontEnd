@@ -1,0 +1,32 @@
+// Menu/AboutMenu.module.scss
+@use '../styles/vars' as *;
+@use '../styles/mixins' as *;
+
+.menuTitle {
+  @include magical-title();
+  font-size: 3rem;
+  margin: 0;
+}
+
+.aboutContent {
+  margin-bottom: $spacing-md;
+
+  p {
+    @include magical-text();
+  }
+}
+
+.backButton {
+  @include magical-button();
+}
+
+// Responsive
+@media (max-width: 480px) {
+  .menuTitle {
+    font-size: 2rem;
+  }
+
+  .aboutContent {
+    font-size: 1rem;
+  }
+}

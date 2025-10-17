@@ -2,13 +2,20 @@
 import { useState } from 'react';
 import { useAtom } from 'jotai';
 import styles from './MainMenu.module.scss';
-import SinglePlayerModal from '../SinglePlayer/SinglePlayerModal';
-import MultiplayerModal from '../Multiplayer/MultiplayerModal';
-import AuthModal from '../Auth/AuthModal';
-import SettingsModal from '../Settings/SettingsModal';
+import MultiplayerMenu from './MultiplayerMenu';
+import AuthMenu from './AuthMenu';
 import LoginNeededModal from '../Auth/LoginNeededModal';
 import { useAuth } from '../Auth/AuthContext';
-import { protectedRouteAttemptAtom } from '../atoms/auth';
+import { protectedRouteAttemptAtom, loginNeededModalAtom } from '../atoms/auth';
+import {
+  setSinglePlayerModalAtom,
+  setMultiplayerModalAtom
+} from '../atoms/menuState';
+import SinglePlayerMenu from './SinglePlayerMenu';
+import SettingsMenu from './SettingsMenu';
+import AboutMenu from './AboutMenu';
+
+const DEBUG = true;
 
 interface MainMenuProps {
   onSinglePlayer: () => void;
@@ -16,147 +23,137 @@ interface MainMenuProps {
   isInitializing?: boolean;
 }
 
+type MenuView = 'main' | 'singlePlayer' | 'multiplayer' | 'settings' | 'about' | 'auth';
+
 export default function MainMenu({ onSinglePlayer, onMultiplayerRoom, isInitializing = false }: MainMenuProps) {
-  const [showAbout, setShowAbout] = useState(false);
-  const [showSinglePlayerModal, setShowSinglePlayerModal] = useState(false);
-  const [showMultiplayerModal, setShowMultiplayerModal] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [protectedRouteAttempt, setProtectedRouteAttempt] = useAtom(protectedRouteAttemptAtom);
+  if(DEBUG) console.log("[MainMenu] - Start");
+  const [currentView, setCurrentView] = useState<MenuView>('main');
+  const [, setProtectedRouteAttempt] = useAtom(protectedRouteAttemptAtom);
+  const [, setShowLoginNeededModal] = useAtom(loginNeededModalAtom);
+  const [, setSinglePlayerModal] = useAtom(setSinglePlayerModalAtom); 
+  const [, setMultiplayerModal] = useAtom(setMultiplayerModalAtom); 
   const { isAuthenticated, user, logout } = useAuth();
 
+  const handleBackToMain = () => {
+    setCurrentView('main');
+    setSinglePlayerModal(false);
+    setMultiplayerModal(false);
+  };
+
   const handleSinglePlayerClick = () => {
-    setShowSinglePlayerModal(true);
+    setCurrentView('singlePlayer');
+    setSinglePlayerModal(true); 
   };
 
   const handleMultiplayerClick = () => {
-    setShowMultiplayerModal(true);
+    setCurrentView('multiplayer');
+    setMultiplayerModal(true); 
+  };
+
+  const handleSettingsClick = () => {
+    setCurrentView('settings');
+  };
+
+  const handleAboutClick = () => {
+    setCurrentView('about');
   };
 
   const handleAuthClick = () => {
     if (isAuthenticated) {
       logout();
+      setCurrentView('main');
     } else {
-      setShowAuthModal(true);
+      setCurrentView('auth');
     }
   };
 
   const handleFreePlay = () => {
-    setShowSinglePlayerModal(false);
+    setSinglePlayerModal(false); 
     onSinglePlayer();
   };
 
-  const handleSettingsClick = () => {
-    setShowSettingsModal(true);
-  };
-
-  const handleOpenAuthModal = () => {
-    setShowAuthModal(true);
-  };
-
-  const handleCloseAuthModal = () => {
-    setShowAuthModal(false);
-
-    if (protectedRouteAttempt) {
-      setProtectedRouteAttempt(null);
-    }
+  const handleMultiplayerRoomCreated = (roomCode: string) => {
+    setMultiplayerModal(false); 
+    setCurrentView('main');
+    onMultiplayerRoom(roomCode);
   };
 
   const handleAuthSuccess = () => {
-    if (protectedRouteAttempt === '/host-room') {
-      setShowMultiplayerModal(true);
-    }
+    setCurrentView('main');
+    setProtectedRouteAttempt(null);
   };
 
-  const handleMultiplayerRoomCreated = (roomCode: string) => {
-    setShowMultiplayerModal(false);
-    onMultiplayerRoom(roomCode);
+  const handleOpenAuthModal = () => {
+    setShowLoginNeededModal(false);
+    setCurrentView('auth');
+  };
+
+  function renderContent(){
+    switch (currentView) {
+      case 'singlePlayer':
+        return(<SinglePlayerMenu onBack={handleBackToMain} onFreePlay={handleFreePlay} />);
+
+      case 'multiplayer':
+        return(<MultiplayerMenu onBack={handleBackToMain} onRoomCreated={handleMultiplayerRoomCreated} />);
+
+      case 'settings':
+        return(<SettingsMenu onBack={handleBackToMain} />);
+
+      case 'about':
+        return(<AboutMenu onBack={handleBackToMain} />);
+
+      case 'auth':
+        return (<AuthMenu onBack={handleBackToMain} onAuthSuccess={handleAuthSuccess} />);
+
+      default:
+        return (
+          <>
+            <h1 className={styles.menuTitle}>Duo Piano</h1>
+            <nav className={styles.menuNav}>
+              <button
+                className={styles.menuItem}
+                onClick={handleSinglePlayerClick}
+                disabled={isInitializing}
+              >
+                {isInitializing ? (
+                  <span className={styles.loadingText}>Initializing Audio...</span>
+                ) : (
+                  'Single Player'
+                )}
+              </button>
+              <button
+                className={styles.menuItem}
+                onClick={handleMultiplayerClick}
+              >
+                Multi Player
+              </button>
+              <button className={styles.menuItem} onClick={handleSettingsClick}>
+                Settings
+              </button>
+              <button className={styles.menuItem} onClick={handleAboutClick}>
+                About
+              </button>
+              <button
+                className={styles.menuItem}
+                onClick={handleAuthClick}
+              >
+                {isAuthenticated ? `Logout (${user?.username})` : 'Login'}
+              </button>
+            </nav>
+          </>
+        );
+    }
   };
 
   return (
     <>
       <div className={styles.mainMenu}>
         <div className={styles.menuContent}>
-          <h1 className={styles.menuTitle}>Virtual Piano</h1>
-
-          <nav className={styles.menuNav}>
-            <button
-              className={styles.menuItem}
-              onClick={handleSinglePlayerClick}
-              disabled={isInitializing}
-            >
-              {isInitializing ? (
-                <span className={styles.loadingText}>Initializing Audio...</span>
-              ) : (
-                'Single Player'
-              )}
-            </button>
-            <button
-              className={styles.menuItem}
-              onClick={handleMultiplayerClick}
-            >
-              Multi Player
-            </button>
-            <button className={styles.menuItem} onClick={handleSettingsClick}>
-              Settings
-            </button>
-            <button className={styles.menuItem} onClick={() => setShowAbout(true)}>
-              About
-            </button>
-            <button
-              className={styles.menuItem}
-              onClick={handleAuthClick}
-            >
-              {isAuthenticated ? `Logout (${user?.username})` : 'Login'}
-            </button>
-          </nav>
+          {renderContent()}
         </div>
       </div>
 
-      {showAbout && (
-        <div className={styles.modalOverlay} onClick={() => setShowAbout(false)}>
-          <div className={styles.aboutModal} onClick={(e) => e.stopPropagation()}>
-            <h2 className={styles.aboutTitle}>About Us</h2>
-            <div className={styles.aboutContent}>
-              <p>Created with love by [Your Name] and [Coworker's Name].</p>
-              <p>We hope you enjoy playing as much as we enjoyed creating this ethereal musical journey.</p>
-            </div>
-            <button className={styles.closeButton} onClick={() => setShowAbout(false)}>
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-
-      {showSinglePlayerModal && (
-        <SinglePlayerModal
-          onClose={() => setShowSinglePlayerModal(false)}
-          onFreePlay={handleFreePlay}
-        />
-      )}
-
-      {showMultiplayerModal && (
-        <MultiplayerModal
-          onClose={() => setShowMultiplayerModal(false)}
-          onRoomCreated={handleMultiplayerRoomCreated}
-        />
-      )}
-
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={handleCloseAuthModal}
-        onAuthSuccess={handleAuthSuccess}
-      />
-
-      <LoginNeededModal
-        onOpenAuthModal={handleOpenAuthModal}
-      />
-
-      {showSettingsModal && (
-        <SettingsModal
-          onClose={() => setShowSettingsModal(false)}
-        />
-      )}
+      <LoginNeededModal onOpenAuthModal={handleOpenAuthModal} />
     </>
   );
 }

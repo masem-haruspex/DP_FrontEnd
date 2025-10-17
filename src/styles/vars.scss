@@ -1,4 +1,4 @@
-// src/styles/vars.scss
+// styles/vars.scss
 :root {
   // Primary Magical Colors
   --color-magic-pink: #ff69b4;
@@ -80,3 +80,73 @@ $duration-normal: var(--duration-normal);
 $duration-slow: var(--duration-slow);
 $easing-ease: var(--easing-ease);
 $easing-bounce: var(--easing-bounce);
+
+@font-face {
+  font-family: 'Avendita';
+  src: url('/fonts/Avendita.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'AVFontimer Regular';
+  src: url('/fonts/AVFontimer-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Browncat';
+  src: url('/fonts/Browncat.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'SymphonieCAT';
+  src: url('/fonts/SymphonieCAT.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'The Bandits';
+  src: url('/fonts/The Bandits.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Winter Drink';
+  src: url('/fonts/Winter Drink.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Blazer Demo';
+  src: url('/fonts/Blazer Demo.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Musical';
+  src: url('/fonts/Musical.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'The Abcastle';
+  src: url('/fonts/The Abcastle.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Vintage Signature';
+  src: url('/fonts/Vintage Signature.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}

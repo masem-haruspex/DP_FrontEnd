@@ -1,42 +1,45 @@
-// AnimatedObject.tsx
+// LoadingScreen/AnimatedObject.tsx
 import { useEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { GLTFLoader } from "three-stdlib";
 import * as THREE from "three";
 import { getSharedDracoLoader } from '../lib/pianoHelpers';
 
-const DEBUG = false;
+const DEBUG = true;
+
+interface AnimatedObjectProps {
+  url: string;
+  position?: [number, number, number];
+  scale?: number;
+  rotation: [number, number, number];
+  shouldAnimate?: boolean;
+  speed?: number;
+  introAnimationName?: string;
+  loopAnimationName?: string;
+  onIntroComplete?: () => void;
+  shouldLoop?: boolean;
+}
 
 export default function AnimatedObject({
   url,
   position = [0, 0, 0],
   rotation = [0, 0, 0],
   scale = 1,
-  startFrame = 0,
   shouldAnimate = true,
   speed = 1,
-}: {
-  url: string;
-  position?: [number, number, number];
-  scale?: number;
-  startFrame?: number;
-  endFrame?: number;
-  shouldAnimate?: boolean;
-  rotation: [number, number, number];
-  speed?: number;
-}) {
+  introAnimationName,
+  loopAnimationName,
+  onIntroComplete,
+  shouldLoop = false,
+}: AnimatedObjectProps) {
   const groupRef = useRef<THREE.Group>(null);
   const [gltf, setGltf] = useState<any>(null);
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
-  const actionsRef = useRef<THREE.AnimationAction[]>([]);
-  const animationStartTimeRef = useRef<number | null>(null);
-
-  // Animation settings
-  const fps = 24;
+  const actionsRef = useRef<{[key: string]: THREE.AnimationAction}>({});
+  const currentActionRef = useRef<THREE.AnimationAction | null>(null);
 
   useEffect(() => {
     if(DEBUG) console.log(`[ANIMATED OBJECT] Loading: ${url}`);
-    //setLoading(true);
 
     const loader = new GLTFLoader();
     const dracoLoader = getSharedDracoLoader();
@@ -45,60 +48,66 @@ export default function AnimatedObject({
     loader.load(
       url,
       (loaded) => {
-        if(DEBUG) console.log(`[ANIMATED OBJECT] ✅ Loaded: ${url}`, loaded);
+        if(DEBUG) console.log(`[ANIMATED OBJECT] ✅ Loaded: ${url}`);
         if(DEBUG) console.log('Animations found:', loaded.animations.length);
-        if(DEBUG) console.log('Animation names:', loaded.animations.map((anim: any) => anim.name));
-
-        // Debug: Log all scene contents
-        if(DEBUG) console.log(`📦 Scene children for ${url}:`, loaded.scene.children.length);
-        loaded.scene.traverse((child: any) => {
-          if(DEBUG) console.log(`  - ${child.name} [${child.type}] visible:${child.visible}`);
-        });
-
-        let meshCount = 0;
-        loaded.scene.traverse((child: any) => {
-          if (child.isMesh) {
-            meshCount++;
-            if(DEBUG) console.log(`📦 Mesh found: ${child.name}`);
-            if(DEBUG) console.log(`   - Material:`, child.material?.name);
-            if(DEBUG) console.log(`   - Skeleton:`, child.skeleton);
-          }
-        });
-
-        if(DEBUG) console.log(`🎯 Total meshes: ${meshCount}`);
 
         setGltf(loaded);
-        //setLoading(false);
 
         if (shouldAnimate && loaded.animations?.length > 0) {
           mixerRef.current = new THREE.AnimationMixer(loaded.scene);
-          actionsRef.current = []; // Clear previous actions
+          actionsRef.current = {};
 
-          // Play ALL animations, not just the first one
-          loaded.animations.forEach((clip: THREE.AnimationClip, index: number) => {
+          // Create actions for all animations
+          loaded.animations.forEach((clip: THREE.AnimationClip) => {
             const action = mixerRef.current!.clipAction(clip);
-
-            // Configure for non-repeating animation
-            action.setLoop(THREE.LoopOnce, 1); // Play once and stop
-            action.clampWhenFinished = true; // Stay at the last frame
-
-            // For title animation with custom frame range
-            if (url.includes('title') && startFrame !== 0) {
-              const startTime = startFrame / fps;
-              // Store the start time so we can offset the animation in useFrame
-              animationStartTimeRef.current = startTime;
-              if(DEBUG) console.log(`[ANIMATED OBJECT] Title animation will start at frame ${startFrame} (time: ${startTime}s)`);
-            } else {
-              animationStartTimeRef.current = 0;
-            }
-
-            action.play();
-            actionsRef.current.push(action);
-
-            if(DEBUG) console.log(`[ANIMATED OBJECT] Animation ${index} started: ${clip.name}, duration: ${clip.duration}`);
+            actionsRef.current[clip.name] = action;
           });
 
-          if(DEBUG) console.log(`[ANIMATED OBJECT] Total animations playing: ${actionsRef.current.length}`);
+          // Start with intro animation if specified
+          if (introAnimationName && actionsRef.current[introAnimationName]) {
+            const introAction = actionsRef.current[introAnimationName];
+
+            introAction.setLoop(THREE.LoopOnce, 1);
+            introAction.clampWhenFinished = true;
+
+            // Set up completion callback - this should fire at the right time
+            mixerRef.current.addEventListener('finished', (e) => {
+              if (e.action === introAction) {
+                if(DEBUG) console.log(`[ANIMATED OBJECT] Intro animation complete: ${introAnimationName}`);
+                onIntroComplete?.();
+
+                // Start loop animation if available
+                if (shouldLoop && loopAnimationName && actionsRef.current[loopAnimationName]) {
+                  const loopAction = actionsRef.current[loopAnimationName];
+                  loopAction.setLoop(THREE.LoopRepeat, Infinity);
+                  loopAction.reset().play();
+                  currentActionRef.current = loopAction;
+                  if(DEBUG) console.log(`[ANIMATED OBJECT] Started loop animation: ${loopAnimationName}`);
+                }
+              }
+            });
+
+            introAction.play();
+            currentActionRef.current = introAction;
+            if(DEBUG) console.log(`[ANIMATED OBJECT] Started intro animation: ${introAnimationName}`);
+          }
+          // If no intro specified but loop is requested, start loop immediately
+          else if (shouldLoop && loopAnimationName && actionsRef.current[loopAnimationName]) {
+            const loopAction = actionsRef.current[loopAnimationName];
+            loopAction.setLoop(THREE.LoopRepeat, Infinity);
+            loopAction.play();
+            currentActionRef.current = loopAction;
+            if(DEBUG) console.log(`[ANIMATED OBJECT] Started loop animation immediately: ${loopAnimationName}`);
+          }
+          // For objects with only one animation (like title), just play it
+          else if (loaded.animations.length > 0) {
+            const action = actionsRef.current[loaded.animations[0].name];
+            action.setLoop(THREE.LoopOnce, 1);
+            action.clampWhenFinished = true;
+            action.play();
+            currentActionRef.current = action;
+            if(DEBUG) console.log(`[ANIMATED OBJECT] Started single animation: ${loaded.animations[0].name}`);
+          }
         } else {
           if(DEBUG) console.log(`[ANIMATED OBJECT] No animations or shouldAnimate=false`);
         }
@@ -106,42 +115,13 @@ export default function AnimatedObject({
       undefined,
       (error) => {
         console.error(`[ANIMATED OBJECT] ❌ Failed to load: ${url}`, error);
-        //setLoading(false);
       }
     );
-  }, [url, shouldAnimate, startFrame, fps]);
+  }, [url, shouldAnimate, introAnimationName, loopAnimationName, shouldLoop, onIntroComplete, speed]);
 
   useFrame((_, delta) => {
     if (!mixerRef.current || !shouldAnimate) return;
-
-    const speedAdjustedDelta = delta * speed;
-    const slowDelta = speedAdjustedDelta;
-
-    mixerRef.current.update(slowDelta);
-
-    // For title animation with custom start frame, we need to manually control the time
-    if (url.includes('title') && animationStartTimeRef.current !== null) {
-      // Get the current time from the first action
-      const action = actionsRef.current[0];
-      if (action) {
-        const currentTime = action.time;
-
-        // If we haven't reached the start frame yet, fast-forward
-        if (currentTime < animationStartTimeRef.current) {
-          action.time = animationStartTimeRef.current;
-        }
-      }
-    }
-
-    // Update the animation mixer
-    mixerRef.current.update(delta);
-
-    if(DEBUG && Math.random() < 0.01 && url.includes('title')) {
-      const action = actionsRef.current[0];
-      if (action) {
-        console.log(`[ANIMATED OBJECT] Title animation time: ${action.time.toFixed(2)}s`);
-      }
-    }
+    mixerRef.current.update(delta * speed);
   });
 
   if (!gltf) return null;
@@ -149,11 +129,6 @@ export default function AnimatedObject({
   return (
     <group ref={groupRef} position={position} rotation={rotation} scale={scale}>
       <primitive object={gltf.scene} />
-      {DEBUG && gltf.scene && (
-        <box3Helper
-          args={[new THREE.Box3().setFromObject(gltf.scene), 0xffff00]}
-        />
-      )}
     </group>
   );
 }

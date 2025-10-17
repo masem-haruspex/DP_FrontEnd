@@ -1,7 +1,6 @@
-// src/styles/mixins.scss
+// styles/mixins.scss
 @use './vars' as *;
 
-// Magical gradient backgrounds
 @mixin magical-gradient($direction: 135deg) {
   background: linear-gradient(
     $direction,
@@ -14,13 +13,37 @@
   animation: gradientShift 8s ease infinite;
 }
 
-// Magical button styles
-@mixin magical-button {
-  padding: $spacing-md $spacing-xl;
+@mixin magical-text {
+  font-family: 'AVFontimer Regular', 'Segoe UI', 'Cursive', sans-serif;
   font-size: 1.1rem;
-  font-weight: 600;
-  color: $midnight-blue;
-  background: $soft-white;
+  color: $twilight-purple;
+  font-weight: 300;
+}
+
+@mixin magical-title {
+  font-family: 'Avendita', 'Segoe UI', 'Cursive', sans-serif;
+  font-family: 'AVFontimer Regular', 'Segoe UI', 'Cursive', sans-serif;
+  font-family: 'The Bandits', 'Segoe UI', 'Cursive', sans-serif;
+  font-family: 'Winter Drink', 'Segoe UI', 'Cursive', sans-serif;
+  font-family: 'Musical', 'Segoe UI', 'Cursive', sans-serif;
+  font-size: 3.5rem;
+  margin-bottom: $spacing-xl;
+  color: $twilight-purple;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  letter-spacing: 1px;
+  font-weight: 300;
+  background: linear-gradient(45deg, $magic-pink, $galaxy-purple);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@mixin magical-button {
+  font-family: 'AVFontimer Regular', 'Segoe UI', 'Cursive', sans-serif;
+  font-family: 'Winter Drink', 'Segoe UI', 'Cursive', sans-serif;
+  letter-spacing: 2px;
+  font-size: 1.2rem;
+  padding: $spacing-md $spacing-xl;
   border: 2px solid transparent;
   border-radius: $radius-md;
   cursor: pointer;
@@ -29,6 +52,9 @@
   box-shadow: $shadow-light;
   position: relative;
   overflow: hidden;
+  color: $twilight-purple;
+  background: rgba(255, 255, 255, 0.6);
+
   
   &::before {
     content: '';
@@ -58,7 +84,6 @@
   }
 }
 
-// Input field styling
 @mixin magical-input {
   padding: $spacing-sm $spacing-md;
   font-size: 1rem;
@@ -75,7 +100,6 @@
   }
 }
 
-// Modal base styles
 @mixin modal-base {
   position: fixed;
   top: 0;
@@ -86,11 +110,8 @@
   justify-content: center;
   align-items: center;
   z-index: 3000;
-  background: rgba(26, 26, 46, 0.8);
-  backdrop-filter: blur(10px);
 }
 
-// Magical card container
 @mixin magical-card {
   background: rgba(255, 255, 250, 0.92);
   border-radius: $radius-lg;
@@ -116,7 +137,6 @@
   }
 }
 
-// Keyframes
 @keyframes gradientShift {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }

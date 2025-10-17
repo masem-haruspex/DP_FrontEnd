@@ -1,4 +1,4 @@
-// src/Preloader/Preloader.tsx
+// Preloader/Preloader.tsx
 import { useEffect, useState } from 'react';
 import { GLTFLoader } from 'three-stdlib';
 import { useSetAtom } from 'jotai';
@@ -7,21 +7,25 @@ import { Text } from '@react-three/drei';
 import { getSharedDracoLoader } from '../lib/pianoHelpers';
 import * as THREE from 'three';
 
-const DEBUG = false;
+const DEBUG = true;
 
 interface PreloaderProps {
   onLoaded?: () => void;
-  onProgress?: (progress: number) => void;
 }
 
-export default function Preloader({ onLoaded, onProgress }: PreloaderProps) {
+export default function Preloader({ onLoaded }: PreloaderProps) {
   const [error, setError] = useState<string | null>(null);
   const setModels = useSetAtom(modelsAtom);
   const [hasStarted, setHasStarted] = useState(false);
 
   const modelUrls = [
+    { url: '/models/loading/cat_black.glb', id: 'loading-cat-black' },
+    { url: '/models/loading/cat_tuxedo.glb', id: 'loading-cat-tuxedo' },
+    { url: '/models/loading/piano.glb', id: 'loading-piano' },
+    { url: '/models/loading/title.glb', id: 'loading-title' },
     { url: '/models/note.glb', id: 'note-model' },
     { url: '/models/casio_basis.glb', id: 'casio-basis' },
+    { url: '/models/midiplus_basis.glb', id: 'midiplus-basis' },
     ...Array.from({ length: 52 }, (_, i) => ({
       url: `/models/white_keys/white_keys.${(i + 1).toString().padStart(3, '0')}.glb`,
       id: `white-key-${(i + 1).toString().padStart(3, '0')}`
@@ -104,7 +108,6 @@ export default function Preloader({ onLoaded, onProgress }: PreloaderProps) {
 
             const progress = Math.floor((completedCount.current / totalModels) * 100);
             if(DEBUG) console.log(`[PRELOADER] ✅ ${assetId} loaded. Progress: ${progress}% (${completedCount.current}/${totalModels})`);
-            onProgress?.(progress);
             resolve();
           },
           undefined,
@@ -133,7 +136,16 @@ export default function Preloader({ onLoaded, onProgress }: PreloaderProps) {
       }
 
       try {
-        const [noteModel, casioBasisModel, ...keyModels] = loadedModels;
+        const [
+          catBlackModel,
+          catTuxedoModel,
+          pianoModel,
+          titleModel,
+          noteModel, 
+          casioBasisModel, 
+          midiplusBasisModel, 
+          ...keyModels
+        ] = loadedModels;
         const whiteKeyModels = keyModels.slice(0, 52);
         const blackKeyModels = keyModels.slice(52);
 
@@ -143,10 +155,15 @@ export default function Preloader({ onLoaded, onProgress }: PreloaderProps) {
 
         if(DEBUG) console.log('[PRELOADER] ✅ All models loaded successfully, setting atom');
         setModels({
+          catBlackModel,
+          catTuxedoModel,
+          pianoModel,
+          titleModel,
           whiteKeyModels,
           blackKeyModels,
           noteModel,
-          casioBasisModel
+          casioBasisModel,
+          midiplusBasisModel,
         });
 
         onLoaded?.();
@@ -160,7 +177,7 @@ export default function Preloader({ onLoaded, onProgress }: PreloaderProps) {
     return () => {
       // Don't dispose shared draco loader
     };
-  }, [hasStarted, onLoaded, onProgress, setModels, modelUrls]);
+  }, [hasStarted, onLoaded, setModels, modelUrls]);
 
   if (error) {
     return (

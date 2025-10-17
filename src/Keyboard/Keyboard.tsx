@@ -1,6 +1,4 @@
 // Keyboard/Keyboard.tsx
-import { useGLTF } from '@react-three/drei';
-import { Piano } from '@tonejs/piano';
 import { useAtomValue } from 'jotai';
 import { Suspense, useEffect, useRef, useState, useCallback } from 'react';
 import * as Tone from 'tone';
@@ -8,6 +6,11 @@ import { modelsAtom } from '../atoms/models';
 import { linearToDecibels } from '../lib/pianoHelpers';
 import Key from './Key';
 import MusicNote from './MusicNote';
+import CasioBasis from './CasioBasis';
+import MidiplusBasis from './MidiplusBasis';
+import { pianoInstanceAtom, audioEffectsAtom } from '../atoms/audio';
+
+const DEBUG = true;
 
 type EffectSettings = {
   volume: number;
@@ -35,8 +38,6 @@ const BLACK_KEY_MAPPINGS = ['w', 'e', 't', 'y', 'u'];
 const PRESSED_Y = -0.4;
 const KEY_SCALE = 0.3;
 const NOTE_LIFESPAN = 3 * 1000;
-const MIN_NOTE = 21;
-const MAX_NOTE = 108;
 
 const noteToMidi = (note: string): number => {
   const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -63,16 +64,6 @@ const blackKeys = Array.from({ length: 36 }, (_, i) => ({
   position: [i * 0.0 + 0.12, 0.1, -0.1] as [number, number, number],
 }));
 
-function CasioBasis() {
-  const { scene } = useGLTF('/models/casio_basis.glb');
-  return <primitive object={scene} />;
-}
-
-function MidiplusBasis() {
-  const { scene } = useGLTF('/models/midiplus_basis.glb');
-  return <primitive object={scene} />;
-}
-
 export default function Keyboard({
   userId,
   position,
@@ -87,8 +78,8 @@ export default function Keyboard({
   const [activeNotes, setActiveNotes] = useState<{ id: string, position: [number, number, number] }[]>([]);
   const noteCounter = useRef(0);
   const activeKeyPresses = useRef<Set<string>>(new Set());
-  const pianoRef = useRef<Piano | null>(null);
-  const effectsRef = useRef<any>(null);
+  const pianoInstance = useAtomValue(pianoInstanceAtom);
+  const audioEffects = useAtomValue(audioEffectsAtom);
 
   const models = useAtomValue(modelsAtom);
 
@@ -102,52 +93,31 @@ export default function Keyboard({
   }, []);
 
   useEffect(() => {
-    if (pianoRef.current || !isLocalPlayer) return;
+    if (!isLocalPlayer) return;
 
-    const initPiano = async () => {
-      try {
-        const pianoInstance = new Piano({
-          velocities: 3,
-          minNote: MIN_NOTE,
-          maxNote: MAX_NOTE
-        });
-
-        const reverb = new Tone.Reverb(2.5);
-        const delay = new Tone.Delay(0.25);
-        const distortion = new Tone.Distortion(0.4);
-        const chorus = new Tone.Chorus(2, 2.5, 0.5);
-        const eq = new Tone.EQ3({ low: 0, mid: 0, high: 0 });
-        const volume = new Tone.Volume(0);
-
-        pianoInstance.chain(eq, distortion, chorus, delay, reverb, volume, Tone.Destination);
-
-        effectsRef.current = { reverb, delay, distortion, chorus, eq, volume };
-        pianoRef.current = pianoInstance;
-
-        await Promise.all([pianoInstance.load(), reverb.generate()]);
-        updateEffects(effectSettings);
-
-        console.log('Piano loaded for', isLocalPlayer ? 'local player' : 'remote player');
-      } catch (err) {
-        console.error('Piano init failed:', err);
-      }
-    };
-
-    initPiano();
-
-    return () => {
-      if (pianoRef.current) {
-        pianoRef.current.dispose();
-        pianoRef.current = null;
-      }
-    };
-  }, [isLocalPlayer]);
+    if (pianoInstance && audioEffects) {
+      if(DEBUG) console.log('Using preloaded piano and effects');
+    }
+  }, [isLocalPlayer, pianoInstance, audioEffects]);
 
   useEffect(() => {
-    if (isLocalPlayer) {
-      updateEffects(effectSettings);
+    if (!isLocalPlayer || !audioEffects) return;
+
+    const { reverb, delay, distortion, chorus, eq, volume } = audioEffects;
+
+    if (reverb) reverb.wet.value = effectSettings.reverb;
+    if (delay) delay.delayTime.value = effectSettings.delay;
+    if (distortion) distortion.wet.value = effectSettings.distortion;
+    if (chorus) chorus.wet.value = effectSettings.chorus;
+    if (eq) {
+      eq.low.value = effectSettings.bass;
+      eq.mid.value = effectSettings.mid;
+      eq.high.value = effectSettings.treble;
     }
-  }, [effectSettings, isLocalPlayer]);
+    if (volume) {
+      volume.volume.value = linearToDecibels(effectSettings.volume);
+    }
+  }, [effectSettings, isLocalPlayer, audioEffects]);
 
   useEffect(() => {
     if (isLocalPlayer || !webSocketService) return;
@@ -180,19 +150,6 @@ export default function Keyboard({
     };
   }, [userId, isLocalPlayer, webSocketService]);
 
-  const updateEffects = (newSettings: EffectSettings) => {
-    if (!effectsRef.current || !isLocalPlayer) return;
-    const { reverb, delay, distortion, chorus, eq, volume } = effectsRef.current;
-    reverb.wet.value = newSettings.reverb;
-    delay.delayTime.value = newSettings.delay;
-    distortion.wet.value = newSettings.distortion;
-    chorus.wet.value = newSettings.chorus;
-    eq.low.value = newSettings.bass;
-    eq.mid.value = newSettings.mid;
-    eq.high.value = newSettings.treble;
-    volume.volume.value = linearToDecibels(newSettings.volume);
-  };
-
   const spawnNote = useCallback((key: string, noteName?: string, shouldBroadcast = true) => {
     if (activeKeyPresses.current.has(key)) return;
 
@@ -217,9 +174,9 @@ export default function Keyboard({
     };
     setActiveNotes(prev => [...prev, newNote]);
 
-    if (pianoRef.current?.loaded && noteName) {
+    if (pianoInstance?.loaded && noteName) {
       const midiNote = noteToMidi(noteName);
-      pianoRef.current.keyDown({ midi: midiNote, velocity: 0.7 });
+      pianoInstance.keyDown({ midi: midiNote, velocity: 0.7 });
 
       if (shouldBroadcast && isLocalPlayer && webSocketService && roomCode) {
         webSocketService.sendKeyEvent(roomCode, {
@@ -230,7 +187,7 @@ export default function Keyboard({
         });
       }
     }
-  }, [userId, currentOctave, position, isLocalPlayer, webSocketService, roomCode]);
+  }, [userId, currentOctave, position, isLocalPlayer, webSocketService, roomCode, pianoInstance]);
 
   const handleKeyRelease = useCallback((key: string, shouldBroadcast = true) => {
     activeKeyPresses.current.delete(key);
@@ -240,11 +197,11 @@ export default function Keyboard({
       return newSet;
     });
 
-    if (pianoRef.current?.loaded) {
+    if (pianoInstance?.loaded) {
       const noteName = getKeyMappings(currentOctave)[key];
       if (noteName) {
         const midiNote = noteToMidi(noteName);
-        pianoRef.current.keyUp({ midi: midiNote });
+        pianoInstance.keyUp({ midi: midiNote });
 
         if (shouldBroadcast && isLocalPlayer && webSocketService && roomCode) {
           webSocketService.sendKeyEvent(roomCode, {
@@ -255,53 +212,52 @@ export default function Keyboard({
         }
       }
     }
-  }, [userId, currentOctave, isLocalPlayer, webSocketService, roomCode]);
+  }, [userId, currentOctave, isLocalPlayer, webSocketService, roomCode, pianoInstance]);
 
   useEffect(() => {
-  if (!isLocalPlayer) return;
+    if (!isLocalPlayer) return;
 
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
-      return;
-    }
-
-    const key = e.key.toLowerCase();
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      return;
-    }
-
-    if (e.key >= '1' && e.key <= '7') {
-      setCurrentOctave(parseInt(e.key));
-    } else {
-      const noteName = getKeyMappings(currentOctave)[key];
-      if (noteName) {
-        spawnNote(key, noteName, true);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
+        return;
       }
-    }
-  };
 
-  const handleKeyUp = (e: KeyboardEvent) => {
-    if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
-      return;
-    }
+      const key = e.key.toLowerCase();
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        return;
+      }
 
-    if (e.key === 'Tab') {
-      return;
-    }
+      if (e.key >= '1' && e.key <= '7') {
+        setCurrentOctave(parseInt(e.key));
+      } else {
+        const noteName = getKeyMappings(currentOctave)[key];
+        if (noteName) {
+          spawnNote(key, noteName, true);
+        }
+      }
+    };
 
-    handleKeyRelease(e.key.toLowerCase(), true);
-  };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
+        return;
+      }
 
-  window.addEventListener('keydown', handleKeyDown);
-  window.addEventListener('keyup', handleKeyUp);
+      if (e.key === 'Tab') {
+        return;
+      }
 
-  return () => {
-    window.removeEventListener('keydown', handleKeyDown);
-    window.removeEventListener('keyup', handleKeyUp);
-  };
-}, [currentOctave, isLocalPlayer, spawnNote, handleKeyRelease]);
+      handleKeyRelease(e.key.toLowerCase(), true);
+    };
 
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [currentOctave, isLocalPlayer, spawnNote, handleKeyRelease]);
 
   const removeNote = (id: string) => {
     setActiveNotes(prev => prev.filter(note => note.id !== id));
@@ -312,10 +268,13 @@ export default function Keyboard({
   return (
     <group position={position} scale={[KEY_SCALE, KEY_SCALE, KEY_SCALE]}>
       <Suspense fallback={null}>
-        {preferredKeyboard === 'Casio' ? <CasioBasis /> : <MidiplusBasis />}
+        {preferredKeyboard === 'Casio' ? (
+          <CasioBasis gltf={models.casioBasisModel} />
+        ) : (
+          <MidiplusBasis gltf={models.midiplusBasisModel} />
+        )}
       </Suspense>
 
-      {/* White keys */}
       {whiteKeys.map((key, index) => {
         const yPosition = WHITE_KEY_MAPPINGS.some(k =>
           pressedKeys.has(k) && key.index === 2 + 7 * (currentOctave - 1) + WHITE_KEY_MAPPINGS.indexOf(k)
@@ -330,7 +289,6 @@ export default function Keyboard({
         );
       })}
 
-      {/* Black keys */}
       {blackKeys.map((key, index) => {
         const yPosition = BLACK_KEY_MAPPINGS.some(k =>
           pressedKeys.has(k) && key.index === 1 + 5 * (currentOctave - 1) + BLACK_KEY_MAPPINGS.indexOf(k)
@@ -345,7 +303,6 @@ export default function Keyboard({
         );
       })}
 
-      {/* Music notes */}
       {activeNotes.map(note => (
         <MusicNote
           key={note.id}

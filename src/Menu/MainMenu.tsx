@@ -15,8 +15,6 @@ import SinglePlayerMenu from './SinglePlayerMenu';
 import SettingsMenu from './SettingsMenu';
 import AboutMenu from './AboutMenu';
 
-const DEBUG = true;
-
 interface MainMenuProps {
   onSinglePlayer: () => void;
   onMultiplayerRoom: (roomCode: string) => void;
@@ -26,7 +24,6 @@ interface MainMenuProps {
 type MenuView = 'main' | 'singlePlayer' | 'multiplayer' | 'settings' | 'about' | 'auth';
 
 export default function MainMenu({ onSinglePlayer, onMultiplayerRoom, isInitializing = false }: MainMenuProps) {
-  if(DEBUG) console.log("[MainMenu] - Start");
   const [currentView, setCurrentView] = useState<MenuView>('main');
   const [, setProtectedRouteAttempt] = useAtom(protectedRouteAttemptAtom);
   const [, setShowLoginNeededModal] = useAtom(loginNeededModalAtom);

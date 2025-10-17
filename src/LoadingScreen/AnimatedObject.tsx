@@ -5,7 +5,7 @@ import { GLTFLoader } from "three-stdlib";
 import * as THREE from "three";
 import { getSharedDracoLoader } from '../lib/pianoHelpers';
 
-const DEBUG = true;
+const DEBUG = false;
 
 interface AnimatedObjectProps {
   url: string;
@@ -18,6 +18,7 @@ interface AnimatedObjectProps {
   loopAnimationName?: string;
   onIntroComplete?: () => void;
   shouldLoop?: boolean;
+  startAnimation?: boolean;
 }
 
 export default function AnimatedObject({
@@ -31,15 +32,20 @@ export default function AnimatedObject({
   loopAnimationName,
   onIntroComplete,
   shouldLoop = false,
+  startAnimation = true,
 }: AnimatedObjectProps) {
   const groupRef = useRef<THREE.Group>(null);
   const [gltf, setGltf] = useState<any>(null);
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   const actionsRef = useRef<{[key: string]: THREE.AnimationAction}>({});
   const currentActionRef = useRef<THREE.AnimationAction | null>(null);
+  const [hasStartedAnimations, setHasStartedAnimations] = useState(false);
+
+  const filename = url.split('/').pop();
 
   useEffect(() => {
-    if(DEBUG) console.log(`[ANIMATED OBJECT] Loading: ${url}`);
+    if(DEBUG) console.log(`[ANIMATED OBJECT ${filename}] Component mounted with startAnimation:`, startAnimation);
+    if(DEBUG) console.log(`[ANIMATED OBJECT ${filename}] Starting model load...`);
 
     const loader = new GLTFLoader();
     const dracoLoader = getSharedDracoLoader();
@@ -48,84 +54,117 @@ export default function AnimatedObject({
     loader.load(
       url,
       (loaded) => {
-        if(DEBUG) console.log(`[ANIMATED OBJECT] ✅ Loaded: ${url}`);
-        if(DEBUG) console.log('Animations found:', loaded.animations.length);
+        if(DEBUG) console.log(`[ANIMATED OBJECT ${filename}] ✅ Model loaded successfully`);
+        if(DEBUG) console.log(`[ANIMATED OBJECT ${filename}] Animations found:`, loaded.animations.length);
+        if(DEBUG) console.log(`[ANIMATED OBJECT ${filename}] Animation names:`, loaded.animations.map((a: THREE.AnimationClip) => a.name));
+        if(DEBUG) console.log(`[ANIMATED OBJECT ${filename}] Current startAnimation value:`, startAnimation);
 
         setGltf(loaded);
 
-        if (shouldAnimate && loaded.animations?.length > 0) {
-          mixerRef.current = new THREE.AnimationMixer(loaded.scene);
-          actionsRef.current = {};
-
-          // Create actions for all animations
-          loaded.animations.forEach((clip: THREE.AnimationClip) => {
-            const action = mixerRef.current!.clipAction(clip);
-            actionsRef.current[clip.name] = action;
-          });
-
-          // Start with intro animation if specified
-          if (introAnimationName && actionsRef.current[introAnimationName]) {
-            const introAction = actionsRef.current[introAnimationName];
-
-            introAction.setLoop(THREE.LoopOnce, 1);
-            introAction.clampWhenFinished = true;
-
-            // Set up completion callback - this should fire at the right time
-            mixerRef.current.addEventListener('finished', (e) => {
-              if (e.action === introAction) {
-                if(DEBUG) console.log(`[ANIMATED OBJECT] Intro animation complete: ${introAnimationName}`);
-                onIntroComplete?.();
-
-                // Start loop animation if available
-                if (shouldLoop && loopAnimationName && actionsRef.current[loopAnimationName]) {
-                  const loopAction = actionsRef.current[loopAnimationName];
-                  loopAction.setLoop(THREE.LoopRepeat, Infinity);
-                  loopAction.reset().play();
-                  currentActionRef.current = loopAction;
-                  if(DEBUG) console.log(`[ANIMATED OBJECT] Started loop animation: ${loopAnimationName}`);
-                }
-              }
-            });
-
-            introAction.play();
-            currentActionRef.current = introAction;
-            if(DEBUG) console.log(`[ANIMATED OBJECT] Started intro animation: ${introAnimationName}`);
-          }
-          // If no intro specified but loop is requested, start loop immediately
-          else if (shouldLoop && loopAnimationName && actionsRef.current[loopAnimationName]) {
-            const loopAction = actionsRef.current[loopAnimationName];
-            loopAction.setLoop(THREE.LoopRepeat, Infinity);
-            loopAction.play();
-            currentActionRef.current = loopAction;
-            if(DEBUG) console.log(`[ANIMATED OBJECT] Started loop animation immediately: ${loopAnimationName}`);
-          }
-          // For objects with only one animation (like title), just play it
-          else if (loaded.animations.length > 0) {
-            const action = actionsRef.current[loaded.animations[0].name];
-            action.setLoop(THREE.LoopOnce, 1);
-            action.clampWhenFinished = true;
-            action.play();
-            currentActionRef.current = action;
-            if(DEBUG) console.log(`[ANIMATED OBJECT] Started single animation: ${loaded.animations[0].name}`);
-          }
-        } else {
-          if(DEBUG) console.log(`[ANIMATED OBJECT] No animations or shouldAnimate=false`);
-        }
       },
       undefined,
       (error) => {
-        console.error(`[ANIMATED OBJECT] ❌ Failed to load: ${url}`, error);
+        console.error(`[ANIMATED OBJECT ${filename}] ❌ Failed to load model:`, error);
       }
     );
-  }, [url, shouldAnimate, introAnimationName, loopAnimationName, shouldLoop, onIntroComplete, speed]);
+  }, [url, filename]);
+
+  useEffect(() => {
+    if(DEBUG) console.log(`[ANIMATED OBJECT ${filename}] Animation trigger check:`, {
+      hasGltf: !!gltf,
+      shouldAnimate,
+      startAnimation,
+      hasStartedAnimations
+    });
+
+    if (!gltf) {
+      if(DEBUG) console.log(`[ANIMATED OBJECT ${filename}] Cannot start animations - model not loaded yet`);
+      return;
+    }
+
+    if (!shouldAnimate) {
+      if(DEBUG) console.log(`[ANIMATED OBJECT ${filename}] Animations disabled by shouldAnimate prop`);
+      return;
+    }
+
+    if (!startAnimation) {
+      if(DEBUG) console.log(`[ANIMATED OBJECT ${filename}] Animations waiting for startAnimation to become true`);
+      return;
+    }
+
+    if (hasStartedAnimations) {
+      if(DEBUG) console.log(`[ANIMATED OBJECT ${filename}] Animations already started, skipping`);
+      return;
+    }
+
+    if(DEBUG) console.log(`[ANIMATED OBJECT ${filename}] 🎬 Starting animations!`);
+    setHasStartedAnimations(true);
+
+    mixerRef.current = new THREE.AnimationMixer(gltf.scene);
+    actionsRef.current = {};
+
+    gltf.animations.forEach((clip: THREE.AnimationClip) => {
+      const action = mixerRef.current!.clipAction(clip);
+      actionsRef.current[clip.name] = action;
+      if(DEBUG) console.log(`[ANIMATED OBJECT ${filename}] Created action for:`, clip.name);
+    });
+
+    if (introAnimationName && actionsRef.current[introAnimationName]) {
+      if(DEBUG) console.log(`[ANIMATED OBJECT ${filename}] Starting intro animation:`, introAnimationName);
+      const introAction = actionsRef.current[introAnimationName];
+
+      introAction.setLoop(THREE.LoopOnce, 1);
+      introAction.clampWhenFinished = true;
+
+      mixerRef.current.addEventListener('finished', (e) => {
+        if (e.action === introAction) {
+          if(DEBUG) console.log(`[ANIMATED OBJECT ${filename}] Intro animation complete:`, introAnimationName);
+          onIntroComplete?.();
+
+          if (shouldLoop && loopAnimationName && actionsRef.current[loopAnimationName]) {
+            if(DEBUG) console.log(`[ANIMATED OBJECT ${filename}] Starting loop animation:`, loopAnimationName);
+            const loopAction = actionsRef.current[loopAnimationName];
+            loopAction.setLoop(THREE.LoopRepeat, Infinity);
+            loopAction.reset().play();
+            currentActionRef.current = loopAction;
+          }
+        }
+      });
+
+      introAction.play();
+      currentActionRef.current = introAction;
+    }
+    else if (shouldLoop && loopAnimationName && actionsRef.current[loopAnimationName]) {
+      if(DEBUG) console.log(`[ANIMATED OBJECT ${filename}] Starting loop animation immediately:`, loopAnimationName);
+      const loopAction = actionsRef.current[loopAnimationName];
+      loopAction.setLoop(THREE.LoopRepeat, Infinity);
+      loopAction.play();
+      currentActionRef.current = loopAction;
+    }
+    else if (gltf.animations.length > 0) {
+      const firstAnimation = gltf.animations[0].name;
+      if(DEBUG) console.log(`[ANIMATED OBJECT ${filename}] Starting single animation:`, firstAnimation);
+      const action = actionsRef.current[firstAnimation];
+      action.setLoop(THREE.LoopOnce, 1);
+      action.clampWhenFinished = true;
+      action.play();
+      currentActionRef.current = action;
+    } else {
+      if(DEBUG) console.log(`[ANIMATED OBJECT ${filename}] No animations to play`);
+    }
+  }, [gltf, shouldAnimate, startAnimation, introAnimationName, loopAnimationName, shouldLoop, onIntroComplete, hasStartedAnimations, filename]);
 
   useFrame((_, delta) => {
-    if (!mixerRef.current || !shouldAnimate) return;
+    if (!mixerRef.current || !shouldAnimate || !startAnimation) return;
     mixerRef.current.update(delta * speed);
   });
 
-  if (!gltf) return null;
+  if (!gltf) {
+    if(DEBUG) console.log(`[ANIMATED OBJECT ${filename}] Rendering null - model not loaded`);
+    return null;
+  }
 
+  if(DEBUG) console.log(`[ANIMATED OBJECT ${filename}] Rendering model`);
   return (
     <group ref={groupRef} position={position} rotation={rotation} scale={scale}>
       <primitive object={gltf.scene} />

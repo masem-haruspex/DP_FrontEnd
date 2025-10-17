@@ -3,6 +3,8 @@ import { useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
+const DEBUG = false;
+
 interface CameraProps {
   position?: [number, number, number];
   rotation?: [number, number, number];
@@ -65,13 +67,13 @@ export default function Camera({
         if (progress < 1) {
           animationRef.current = requestAnimationFrame(animate);
         } else {
-          console.log('📷 Camera Transition Complete:');
-          console.log('Final Position:', {
-            x: camera.position.x.toFixed(3),
-            y: camera.position.y.toFixed(3),
-            z: camera.position.z.toFixed(3)
-          });
-          console.log('Final Rotation:', {
+          if(DEBUG) console.log('📷 Camera Transition Complete:');
+          if(DEBUG) console.log('Final Position:', {
+             x: camera.position.x.toFixed(3),
+             y: camera.position.y.toFixed(3),
+             z: camera.position.z.toFixed(3)
+           });
+          if(DEBUG) console.log('Final Rotation:', {
             x: camera.rotation.x.toFixed(3),
             y: camera.rotation.y.toFixed(3),
             z: camera.rotation.z.toFixed(3)

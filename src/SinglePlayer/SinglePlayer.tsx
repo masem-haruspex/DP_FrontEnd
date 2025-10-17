@@ -9,6 +9,7 @@ interface SinglePlayerProps {
 }
 
 export default function SinglePlayer({ onBack, onSettingsChange, currentSettings }: SinglePlayerProps) {
+  console.log("Single Player Started");
   const [settings, setSettings] = useState(currentSettings);
 
   // TODO make the settings actually affect the sounds

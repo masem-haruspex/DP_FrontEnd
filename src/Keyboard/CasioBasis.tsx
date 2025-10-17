@@ -1,6 +1,14 @@
-import { useGLTF } from '@react-three/drei';
+interface CasioBasisProps {
+  gltf: any;
+}
 
-export default function CasioBasis() {
-  const { scene } = useGLTF('/models/casio_basis.glb');
-  return <primitive object={scene} />;
+export default function CasioBasis({ gltf }: CasioBasisProps) {
+  console.log('CasioBasis rendering with preloaded model:', !!gltf);
+  
+  if (!gltf) {
+    console.log('CasioBasis: No gltf provided, rendering nothing');
+    return null;
+  }
+
+  return <primitive object={gltf.scene} />;
 }

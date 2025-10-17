@@ -79,7 +79,7 @@
   @include magical-button();
   position: absolute;
   bottom: $spacing-lg;
-  right: $spacing-lg;
+  left: $spacing-lg;
   z-index: 1000;
   padding: $spacing-sm $spacing-md;
   font-size: 0.9rem;

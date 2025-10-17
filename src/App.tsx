@@ -5,7 +5,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAtom } from 'jotai';
 import Camera from './Camera/Camera';
 import { BloomScene } from "./Keyboard/MusicNote";
-import LoadingScreen from './LoadingScreen/LoadingScreen';
 import Preloader from './Preloader/Preloader';
 import Keyboard from './Keyboard/Keyboard';
 import MainMenu from './Menu/MainMenu';
@@ -17,70 +16,26 @@ import { useAuth } from './Auth/AuthContext';
 import { WebSocketService } from './Multiplayer/WebSocketService';
 import MultiplayerRoom from './Multiplayer/MultiplayerRoom';
 import { menuStateAtom, cameraRotationAtom, cameraPositionAtom, markIntroAnimationsPlayedAtom } from './atoms/menuState';
-
-// State management for OAuth
-import { useSetAtom } from 'jotai';
+import { initializeAudioAtom, isAudioReadyAtom } from './atoms/audio';
+import { useAtomValue, useSetAtom } from 'jotai';
 import { toastsAtom } from './atoms/toast';
 import { authAtom, preferredKeyboardAtom } from './atoms/auth';
 import axiosInstance from './lib/axiosInstance';
 import { setCookie } from './lib/cookies';
 import { useQueryClient } from '@tanstack/react-query';
 
-const DEBUG = false;
-
-function VisibilityController() {
-  const { gl, advance } = useThree();
-
-  useEffect(() => {
-    let running = true;
-    let frameId: number;
-
-    const render = (timestamp: number) => {
-      if (!running) return;
-      frameId = requestAnimationFrame(render);
-      advance(timestamp);
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        running = false;
-        cancelAnimationFrame(frameId);
-      } else {
-        if (!running) {
-          running = true;
-          frameId = requestAnimationFrame(render);
-        }
-      }
-    };
-
-    frameId = requestAnimationFrame(render);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      running = false;
-      cancelAnimationFrame(frameId);
-    };
-  }, [gl, advance]);
-
-  return null;
-}
+const DEBUG = true;
 
 export default function App() {
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
-  const [audioInitialized, setAudioInitialized] = useState(false);
-  const [animationComplete, setAnimationComplete] = useState(false);
   const [modelsLoaded, setModelsLoaded] = useState(false);
-  const [loadingProgress, setLoadingProgress] = useState(0);
   const [showMainMenu, setShowMainMenu] = useState(false);
   const [showSinglePlayer, setShowSinglePlayer] = useState(false);
   const [preloaderStarted, setPreloaderStarted] = useState(false);
   const [debug, setDebug] = useState(false);
-
-  // Multiplayer state
+  const [startLoadingAnimations, setStartLoadingAnimations] = useState(false);
   const [currentMultiplayerRoom, setCurrentMultiplayerRoom] = useState<string | null>(null);
   const [webSocketService, setWebSocketService] = useState<WebSocketService | null>(null);
-
-  // Audio settings state
   const [singlePlayerSettings, setSinglePlayerSettings] = useState({
     volume: 0.2,
     reverb: 0.5,
@@ -91,7 +46,6 @@ export default function App() {
     mid: 0,
     treble: 0
   });
-
   const [multiplayerSettings, setMultiplayerSettings] = useState({
     volume: 0.2,
     reverb: 0.5,
@@ -103,72 +57,30 @@ export default function App() {
     treble: 0
   });
 
-  // Only store actual players from the server
+  const isAudioReady = useAtomValue(isAudioReadyAtom);
+  const initializeAudio = useSetAtom(initializeAudioAtom);
   const [multiplayerPlayers, setMultiplayerPlayers] = useState<any[]>([]);
-
   const { user } = useAuth();
-
   const [menuState] = useAtom(menuStateAtom);
   const [cameraRotation] = useAtom(cameraRotationAtom);
   const [cameraPosition] = useAtom(cameraPositionAtom);
   const [, markIntroAnimationsPlayed] = useAtom(markIntroAnimationsPlayedAtom);
-
   const setAuth = useSetAtom(authAtom);
   const setPreferredKeyboard = useSetAtom(preferredKeyboardAtom);
   const setToasts = useSetAtom(toastsAtom);
   const queryClient = useQueryClient();
   const rememberMe = false;
 
-  const initializeAudio = useCallback(async () => {
-    try {
-      console.log('Starting audio initialization...');
-
-      // Use the original working import pattern
-      const Tone = (await import('tone')) as unknown as typeof import('tone');
-      const { Piano } = await import('@tonejs/piano');
-
-      // First ensure audio context is running
-      if (Tone.context.state === 'suspended') {
-        console.log('Resuming audio context...');
-        await Tone.context.resume();
-      } else if (Tone.context.state !== 'running') {
-        console.log('Starting audio context...');
-        await Tone.start();
-      }
-
-      console.log('Audio context state:', Tone.context.state);
-
-      // Initialize piano but don't wait for full loading - let it load in background
-      const piano = new Piano({
-        velocities: 3,
-        minNote: 21,
-        maxNote: 108
-      });
-
-      // Start loading piano but don't block on it
-      piano.load().then(() => {
-        console.log('Piano loaded successfully');
-        piano.dispose();
-      }).catch((error) => {
-        console.warn('Piano loading failed, but continuing:', error);
-      });
-
-      setAudioInitialized(true);
-      console.log('Audio initialization completed');
-
-    } catch (error) {
-      console.error('Audio initialization failed:', error);
-      // Still set audio as initialized to allow app to continue
-      setAudioInitialized(true);
-    }
-  }, []);
-
   const handleEnterClick = async () => {
-    console.log('User clicked to start');
+    if(DEBUG) console.log('User clicked to start');
     setHasUserInteracted(true);
-    await initializeAudio();
-  };
+    setStartLoadingAnimations(true);
 
+    initializeAudio().catch(error => {
+      console.error('Audio initialization failed:', error);
+    });
+
+  };
   const handleLoadingComplete = useCallback(() => {
     if (DEBUG) console.log('[APP] Loading complete, showing main menu');
     setShowMainMenu(true);
@@ -226,10 +138,10 @@ export default function App() {
   }
 
   useEffect(() => {
-    if (animationComplete && !menuState.introAnimationsPlayed) {
+    if (!menuState.introAnimationsPlayed) {
       markIntroAnimationsPlayed();
     }
-  }, [animationComplete, menuState.introAnimationsPlayed, markIntroAnimationsPlayed]);
+  }, [menuState.introAnimationsPlayed, markIntroAnimationsPlayed]);
 
   useEffect(() => {
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
@@ -269,7 +181,7 @@ export default function App() {
         },
       ]);
 
-      console.log("OAuth login successfully!");
+      if(DEBUG) console.log("OAuth login successfully!");
       window.history.replaceState({}, document.title, window.location.pathname);
       handleStraightToMenu();
     };
@@ -332,67 +244,53 @@ export default function App() {
   }, [webSocketService, currentMultiplayerRoom]);
 
   useEffect(() => {
-    if (hasUserInteracted && !preloaderStarted) {
+    if (!preloaderStarted) {
+      if(DEBUG) console.log('[APP] Starting preloader immediately');
       setPreloaderStarted(true);
     }
-  }, [hasUserInteracted, preloaderStarted]);
-
-  const showAnimatedModels = hasUserInteracted && !showSinglePlayer && !currentMultiplayerRoom;
-
-  const isLoading = hasUserInteracted && (!modelsLoaded || !animationComplete);
+  }, []);
 
   useEffect(() => {
     if (DEBUG) {
       console.log('[APP] Checking completion status:', {
         modelsLoaded,
-        animationComplete,
-        audioInitialized,
+        isAudioReady,
         showMainMenu,
         showSinglePlayer,
         currentMultiplayerRoom,
       });
     }
 
-    if(showMainMenu && !showSinglePlayer && !currentMultiplayerRoom)
-      console.log("MAIN MENU DISPLAYED");
-    else
-      console.log("MAIN MENU NOT");
-
-    if (modelsLoaded && animationComplete && audioInitialized && !showMainMenu && !showSinglePlayer && !currentMultiplayerRoom) {
+    if (modelsLoaded && isAudioReady && !showMainMenu && !showSinglePlayer && !currentMultiplayerRoom) {
       if (DEBUG) console.log('[APP] All conditions met, calling handleLoadingComplete');
       handleLoadingComplete();
     }
-  }, [modelsLoaded, animationComplete, audioInitialized, showMainMenu, showSinglePlayer, currentMultiplayerRoom, handleLoadingComplete]);
-
-  if (!hasUserInteracted) {
-    return (
-      <div className={styles.splashScreen} onClick={handleEnterClick}>
-        <div className={styles.particle}></div>
-        <div className={styles.particle}></div>
-        <div className={styles.particle}></div>
-        <div className={styles.particle}></div>
-        <div className={styles.particle}></div>
-        <div className={styles.particle}></div>
-        <div className={styles.particle}></div>
-        <div className={styles.particle}></div>
-
-        <div className={styles.splashContent}>
-          <h1>Duo Piano</h1>
-          <p>Click anywhere to start</p>
-        </div>
-      </div>
-    );
-  }
+  }, [modelsLoaded, isAudioReady, showMainMenu, showSinglePlayer, currentMultiplayerRoom, handleLoadingComplete]);
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
 
-      {preloaderStarted && !modelsLoaded && (
-        <Preloader
-          onLoaded={() => setModelsLoaded(true)}
-          onProgress={setLoadingProgress}
-        />
+      {!hasUserInteracted && (
+        <div className={styles.splashScreen} onClick={handleEnterClick}>
+          <div className={styles.particle}></div>
+          <div className={styles.particle}></div>
+          <div className={styles.particle}></div>
+          <div className={styles.particle}></div>
+          <div className={styles.particle}></div>
+          <div className={styles.particle}></div>
+          <div className={styles.particle}></div>
+          <div className={styles.particle}></div>
+
+          <div className={styles.splashContent}>
+            <h1>Duo Piano</h1>
+            <p>Click anywhere to start</p>
+          </div>
+        </div>
       )}
+
+      <Preloader
+        onLoaded={() => setModelsLoaded(true)}
+      />
       <div
         style={{
           width: '100vw',
@@ -415,14 +313,14 @@ export default function App() {
           gl={{
             powerPreference: "high-performance",
               antialias: false,
-              alpha: true, // Change to true for transparent background
+              alpha: true,
               logarithmicDepthBuffer: false,
               precision: "highp",
               preserveDrawingBuffer: false,
               stencil: false,
           }}
           onCreated={({ gl }) => {
-            gl.setClearColor('#000000', 0); // Transparent background
+            gl.setClearColor('#000000', 0);
             gl.shadowMap.enabled = false;
             gl.autoClear = true;
           }}
@@ -438,7 +336,6 @@ export default function App() {
             <pointLight position={[10, 10, 10]} intensity={500} />
             <pointLight position={[-20, 0, -10]} intensity={60} />
 
-            {/* Single Player Keyboard */}
             {showSinglePlayer && modelsLoaded && (
               <Keyboard
                 userId={user?.id || 'local'}
@@ -461,7 +358,7 @@ export default function App() {
               />
             ))}
 
-            {showAnimatedModels && (
+            {!showSinglePlayer && !currentMultiplayerRoom &&
               <group position={[-1, 0.8, -3]} rotation={[degreesToRad(28), degreesToRad(0), degreesToRad(0)]}>
                 {(menuState.selectedCat === 'both' || menuState.selectedCat === 'black') && (
                   <AnimatedObject
@@ -472,6 +369,7 @@ export default function App() {
                     introAnimationName={"black_cat_duo_piano_loading"}
                     loopAnimationName="black_playing"
                     shouldLoop={true}
+                    startAnimation={startLoadingAnimations}
                   />
                 )}
 
@@ -484,6 +382,7 @@ export default function App() {
                     introAnimationName={"tuxedo_cat_duo_piano_loading"}
                     loopAnimationName="tuxedo_playing"
                     shouldLoop={true}
+                    startAnimation={startLoadingAnimations}
                   />
                 )}
 
@@ -493,6 +392,7 @@ export default function App() {
                   rotation={[degreesToRad(0), 0, 0]}
                   scale={1.0}
                   shouldAnimate={false}
+                  startAnimation={startLoadingAnimations}
                 />
 
                 <AnimatedObject
@@ -502,24 +402,13 @@ export default function App() {
                   scale={1}
                   shouldAnimate={true}
                   introAnimationName="TextAction"
+                  startAnimation={startLoadingAnimations}
                 />
               </group>
-            )}
-
-
+            }
           </BloomScene>
         </Canvas>
       </div>
-
-      {isLoading && (
-        <LoadingScreen
-          progress={loadingProgress}
-          audioInitialized={audioInitialized}
-          modelsLoaded={modelsLoaded}
-          onComplete={handleLoadingComplete}
-          onAnimationComplete={() => setAnimationComplete(true)}
-        />
-      )}
 
       {showMainMenu && !showSinglePlayer && !currentMultiplayerRoom && (
         <MainMenu
@@ -586,3 +475,41 @@ function BackgroundPan() {
 
   return null;
 }
+
+function VisibilityController() {
+  const { gl, advance } = useThree();
+
+  useEffect(() => {
+    let running = true;
+    let frameId: number;
+
+    const render = (timestamp: number) => {
+      if (!running) return;
+      frameId = requestAnimationFrame(render);
+      advance(timestamp);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        running = false;
+        cancelAnimationFrame(frameId);
+      } else {
+        if (!running) {
+          running = true;
+          frameId = requestAnimationFrame(render);
+        }
+      }
+    };
+
+    frameId = requestAnimationFrame(render);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      running = false;
+      cancelAnimationFrame(frameId);
+    };
+  }, [gl, advance]);
+
+  return null;
+}
+

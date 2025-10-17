@@ -232,73 +232,73 @@ export default function App() {
   }, [animationComplete, menuState.introAnimationsPlayed, markIntroAnimationsPlayed]);
 
   useEffect(() => {
-  const hashParams = new URLSearchParams(window.location.hash.substring(1));
-  const token = hashParams.get("token");
-  const userData = hashParams.get("user");
-  const error = hashParams.get("error");
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const token = hashParams.get("token");
+    const userData = hashParams.get("user");
+    const error = hashParams.get("error");
 
-  const handleSuccess = async (token: string, user: any) => {
-    const expiresInDays = rememberMe ? 365 : 0;
-    setCookie("token", token, expiresInDays);
+    const handleSuccess = async (token: string, user: any) => {
+      const expiresInDays = rememberMe ? 365 : 0;
+      setCookie("token", token, expiresInDays);
 
-    if (user) {
-      localStorage.setItem("user", JSON.stringify(user));
+      if (user) {
+        localStorage.setItem("user", JSON.stringify(user));
+      }
+
+      setAuth({
+        user,
+        token,
+        isLoading: false,
+        isAuthenticated: true,
+      });
+
+      axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+
+      if (user?.preferredKeyboard) {
+        setPreferredKeyboard(user.preferredKeyboard);
+      }
+
+      setToasts(prev => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          message: "OAuth login successful!",
+          type: "success",
+          duration: 3000,
+        },
+      ]);
+
+      console.log("OAuth login successfully!");
+      window.history.replaceState({}, document.title, window.location.pathname);
+      handleStraightToMenu();
+    };
+
+    const handleError = (msg: string) => {
+      console.error("OAuth2 login failed:", msg);
+      setToasts(prev => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          message: msg || "OAuth2 login failed",
+          type: "error",
+          duration: 5000,
+        },
+      ]);
+      handleStraightToMenu();
+    };
+
+    if (token) {
+      try {
+        const user = userData ? JSON.parse(decodeURIComponent(userData)) : null;
+        handleSuccess(token, user);
+      } catch (err) {
+        handleError("Failed to process user data");
+      }
+    } else if (error) {
+      handleError(error);
     }
-
-    setAuth({
-      user,
-      token,
-      isLoading: false,
-      isAuthenticated: true,
-    });
-
-    axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-    queryClient.invalidateQueries({ queryKey: ["user"] });
-
-    if (user?.preferredKeyboard) {
-      setPreferredKeyboard(user.preferredKeyboard);
-    }
-
-    setToasts(prev => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        message: "OAuth login successful!",
-        type: "success",
-        duration: 3000,
-      },
-    ]);
-
-    console.log("OAuth login successfully!");
-    window.history.replaceState({}, document.title, window.location.pathname);
-    handleStraightToMenu();
-  };
-
-  const handleError = (msg: string) => {
-    console.error("OAuth2 login failed:", msg);
-    setToasts(prev => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        message: msg || "OAuth2 login failed",
-        type: "error",
-        duration: 5000,
-      },
-    ]);
-    handleStraightToMenu();
-  };
-
-  if (token) {
-    try {
-      const user = userData ? JSON.parse(decodeURIComponent(userData)) : null;
-      handleSuccess(token, user);
-    } catch (err) {
-      handleError("Failed to process user data");
-    }
-  } else if (error) {
-    handleError(error);
-  }
-}, []);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -342,27 +342,27 @@ export default function App() {
   const isLoading = hasUserInteracted && (!modelsLoaded || !animationComplete);
 
   useEffect(() => {
-  if (DEBUG) {
-    console.log('[APP] Checking completion status:', {
-      modelsLoaded,
-      animationComplete,
-      audioInitialized,
-      showMainMenu,
-      showSinglePlayer,
-      currentMultiplayerRoom,
-    });
-  }
+    if (DEBUG) {
+      console.log('[APP] Checking completion status:', {
+        modelsLoaded,
+        animationComplete,
+        audioInitialized,
+        showMainMenu,
+        showSinglePlayer,
+        currentMultiplayerRoom,
+      });
+    }
 
     if(showMainMenu && !showSinglePlayer && !currentMultiplayerRoom)
       console.log("MAIN MENU DISPLAYED");
     else
       console.log("MAIN MENU NOT");
 
-  if (modelsLoaded && animationComplete && audioInitialized && !showMainMenu && !showSinglePlayer && !currentMultiplayerRoom) {
-    if (DEBUG) console.log('[APP] All conditions met, calling handleLoadingComplete');
-    handleLoadingComplete();
-  }
-}, [modelsLoaded, animationComplete, audioInitialized, showMainMenu, showSinglePlayer, currentMultiplayerRoom, handleLoadingComplete]);
+    if (modelsLoaded && animationComplete && audioInitialized && !showMainMenu && !showSinglePlayer && !currentMultiplayerRoom) {
+      if (DEBUG) console.log('[APP] All conditions met, calling handleLoadingComplete');
+      handleLoadingComplete();
+    }
+  }, [modelsLoaded, animationComplete, audioInitialized, showMainMenu, showSinglePlayer, currentMultiplayerRoom, handleLoadingComplete]);
 
   if (!hasUserInteracted) {
     return (
@@ -393,91 +393,107 @@ export default function App() {
           onProgress={setLoadingProgress}
         />
       )}
-
-      <Canvas
-        frameloop="demand"
-        dpr={1}
-        gl={{
-          powerPreference: "high-performance",
-            antialias: false,
-            alpha: false,
-            logarithmicDepthBuffer: false,
-            precision: "highp",
-            preserveDrawingBuffer: false,
-            stencil: false,
-        }}
-        onCreated={({ gl }) => {
-          gl.setClearColor('#111144');
-          gl.shadowMap.enabled = false;
-          gl.autoClear = true;
+      <div
+        style={{
+          width: '100vw',
+            height: '100vh',
+            position: 'relative',
+            overflow: 'hidden'
         }}
       >
-        <SceneDebugger />
-        <VisibilityController />
-        <Camera rotation={cameraRotation} position={cameraPosition} />
+        <div
+          className={styles.backgroundImage}
+          style={{
+            backgroundImage: 'url("/stars.jpg")',
+              backgroundPosition: menuState.showSinglePlayerModal || menuState.showMultiplayerModal ? 'right' : 'left'
+          }}
+        />
 
-        <BloomScene>
-          {debug && <Stats />}
-          <ambientLight intensity={0.9} />
-          <pointLight position={[10, 10, 10]} intensity={500} />
-          <pointLight position={[-20, 0, -10]} intensity={60} />
+        <Canvas
+          frameloop="demand"
+          dpr={1}
+          gl={{
+            powerPreference: "high-performance",
+              antialias: false,
+              alpha: true, // Change to true for transparent background
+              logarithmicDepthBuffer: false,
+              precision: "highp",
+              preserveDrawingBuffer: false,
+              stencil: false,
+          }}
+          onCreated={({ gl }) => {
+            gl.setClearColor('#000000', 0); // Transparent background
+            gl.shadowMap.enabled = false;
+            gl.autoClear = true;
+          }}
+        >
+          <SceneDebugger />
+          <VisibilityController />
+          <BackgroundPan />
+          <Camera rotation={cameraRotation} position={cameraPosition} />
 
-          {/* Single Player Keyboard */}
-          {showSinglePlayer && modelsLoaded && (
-            <Keyboard
-              userId={user?.id || 'local'}
-              position={[0, -8, -16]}
-              isLocalPlayer={true}
-              effectSettings={singlePlayerSettings}
-              preferredKeyboard={user?.preferredKeyboard || 'Casio'}
-            />
-          )}
+          <BloomScene>
+            {debug && <Stats />}
+            <ambientLight intensity={0.9} />
+            <pointLight position={[10, 10, 10]} intensity={500} />
+            <pointLight position={[-20, 0, -10]} intensity={60} />
 
-          {currentMultiplayerRoom && modelsLoaded && multiplayerPlayers.map((player) => (
-            <Keyboard
-              key={player.id}
-              userId={player.id}
-              position={player.position}
-              isLocalPlayer={player.id === user?.id}
-              effectSettings={multiplayerSettings}
-              webSocketService={webSocketService}
-              preferredKeyboard={player.preferredKeyboard}
-            />
-          ))}
-
-          {showAnimatedModels && (
-            <group position={[-1, 0.8, -3]} rotation={[degreesToRad(28), degreesToRad(0), degreesToRad(0)]}>
-              {(menuState.selectedCat === 'both' || menuState.selectedCat === 'black') && (
-                <AnimatedObject
-                  url="/models/loading/cat_black.glb"
-                  position={[3, 1, 1]}
-                  rotation={[0, 0, 0]}
-                  scale={1.2}
-                  introAnimationName={"black_cat_duo_piano_loading"}
-                  loopAnimationName="black_playing"
-                  shouldLoop={true}
-                />
-              )}
-
-              {(menuState.selectedCat === 'both' || menuState.selectedCat === 'tuxedo') && (
-                <AnimatedObject
-                  url="/models/loading/cat_tuxedo.glb"
-                  position={[3, 1, 1]}
-                  rotation={[0, 0, 0]}
-                  scale={1.2}
-                  introAnimationName={"tuxedo_cat_duo_piano_loading"}
-                  loopAnimationName="tuxedo_playing"
-                  shouldLoop={true}
-                />
-              )}
-
-              <AnimatedObject
-                url="/models/loading/piano.glb"
-                position={[3, 1, 1]}
-                rotation={[degreesToRad(0), 0, 0]}
-                scale={1.0}
-                shouldAnimate={false}
+            {/* Single Player Keyboard */}
+            {showSinglePlayer && modelsLoaded && (
+              <Keyboard
+                userId={user?.id || 'local'}
+                position={[0, -8, -16]}
+                isLocalPlayer={true}
+                effectSettings={singlePlayerSettings}
+                preferredKeyboard={user?.preferredKeyboard || 'Casio'}
               />
+            )}
+
+            {currentMultiplayerRoom && modelsLoaded && multiplayerPlayers.map((player) => (
+              <Keyboard
+                key={player.id}
+                userId={player.id}
+                position={player.position}
+                isLocalPlayer={player.id === user?.id}
+                effectSettings={multiplayerSettings}
+                webSocketService={webSocketService}
+                preferredKeyboard={player.preferredKeyboard}
+              />
+            ))}
+
+            {showAnimatedModels && (
+              <group position={[-1, 0.8, -3]} rotation={[degreesToRad(28), degreesToRad(0), degreesToRad(0)]}>
+                {(menuState.selectedCat === 'both' || menuState.selectedCat === 'black') && (
+                  <AnimatedObject
+                    url="/models/loading/cat_black.glb"
+                    position={[3, 1, 1]}
+                    rotation={[0, 0, 0]}
+                    scale={1.2}
+                    introAnimationName={"black_cat_duo_piano_loading"}
+                    loopAnimationName="black_playing"
+                    shouldLoop={true}
+                  />
+                )}
+
+                {(menuState.selectedCat === 'both' || menuState.selectedCat === 'tuxedo') && (
+                  <AnimatedObject
+                    url="/models/loading/cat_tuxedo.glb"
+                    position={[3, 1, 1]}
+                    rotation={[0, 0, 0]}
+                    scale={1.2}
+                    introAnimationName={"tuxedo_cat_duo_piano_loading"}
+                    loopAnimationName="tuxedo_playing"
+                    shouldLoop={true}
+                  />
+                )}
+
+                <AnimatedObject
+                  url="/models/loading/piano.glb"
+                  position={[3, 1, 1]}
+                  rotation={[degreesToRad(0), 0, 0]}
+                  scale={1.0}
+                  shouldAnimate={false}
+                />
 
                 <AnimatedObject
                   url="/models/loading/title.glb"
@@ -487,12 +503,13 @@ export default function App() {
                   shouldAnimate={true}
                   introAnimationName="TextAction"
                 />
-            </group>
-          )}
+              </group>
+            )}
 
 
-        </BloomScene>
-      </Canvas>
+          </BloomScene>
+        </Canvas>
+      </div>
 
       {isLoading && (
         <LoadingScreen
@@ -551,6 +568,21 @@ function SceneDebugger() {
       });
     }
   });
+
+  return null;
+}
+
+function BackgroundPan() {
+  const { scene } = useThree();
+  const [menuState] = useAtom(menuStateAtom);
+
+  useEffect(() => {
+    const background = scene.children.find(child => child.renderOrder === -1);
+    if (background) {
+      const targetX = (menuState.showSinglePlayerModal || menuState.showMultiplayerModal) ? -1 : 0;
+      background.position.x = targetX;
+    }
+  }, [menuState.showSinglePlayerModal, menuState.showMultiplayerModal, scene]);
 
   return null;
 }

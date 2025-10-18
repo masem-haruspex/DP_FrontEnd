@@ -21,11 +21,7 @@
 }
 
 @mixin magical-title {
-  font-family: 'Avendita', 'Segoe UI', 'Cursive', sans-serif;
-  font-family: 'AVFontimer Regular', 'Segoe UI', 'Cursive', sans-serif;
-  font-family: 'The Bandits', 'Segoe UI', 'Cursive', sans-serif;
-  font-family: 'Winter Drink', 'Segoe UI', 'Cursive', sans-serif;
-  font-family: 'Musical', 'Segoe UI', 'Cursive', sans-serif;
+  font-family: 'Prompt', sans-serif;
   font-size: 3.5rem;
   margin-bottom: $spacing-xl;
   color: $twilight-purple;
@@ -39,8 +35,6 @@
 }
 
 @mixin magical-button {
-  font-family: 'AVFontimer Regular', 'Segoe UI', 'Cursive', sans-serif;
-  font-family: 'Winter Drink', 'Segoe UI', 'Cursive', sans-serif;
   letter-spacing: 2px;
   font-size: 1.2rem;
   padding: $spacing-md $spacing-xl;
@@ -113,11 +107,11 @@
 }
 
 @mixin magical-card {
-  background: rgba(255, 255, 250, 0.92);
+  background: rgba(255, 255, 255, 0.08);
   border-radius: $radius-lg;
   padding: $spacing-xl;
   box-shadow: $shadow-heavy;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(12px);
   max-width: 500px;
   width: 90%;

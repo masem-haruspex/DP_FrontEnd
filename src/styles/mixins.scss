@@ -107,7 +107,7 @@
 }
 
 @mixin magical-card {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0);
   border-radius: $radius-lg;
   padding: $spacing-xl;
   box-shadow: $shadow-heavy;
@@ -125,6 +125,7 @@
     right: -2px;
     bottom: -2px;
     background: linear-gradient(45deg, $magic-pink, $starlight-blue, $galaxy-purple, $cosmic-gold);
+    filter: saturate(70%) brightness(35%);
     z-index: -1;
     border-radius: calc(#{$radius-lg} + 2px);
     animation: borderGlow 3s ease-in-out infinite alternate;

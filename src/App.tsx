@@ -302,7 +302,7 @@ export default function App() {
         <div
           className={styles.backgroundImage}
           style={{
-            backgroundImage: 'url("/stars.jpg")',
+            backgroundImage: 'url("/bg-nebula.PNG")',
               backgroundPosition: menuState.showSinglePlayerModal || menuState.showMultiplayerModal ? 'right' : 'left'
           }}
         />

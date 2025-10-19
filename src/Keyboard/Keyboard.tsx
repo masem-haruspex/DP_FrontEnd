@@ -10,7 +10,7 @@ import CasioBasis from './CasioBasis';
 import MidiplusBasis from './MidiplusBasis';
 import { pianoInstanceAtom, audioEffectsAtom } from '../atoms/audio';
 
-const DEBUG = true;
+const DEBUG = false;
 
 type EffectSettings = {
   volume: number;

@@ -23,9 +23,12 @@ export const RoomService = {
 	async createRoom(ownerId: string, roomData: CreateRoomData): Promise<Room> {
 		debugLog('createRoom: Starting request', { ownerId, roomData });
 		try {
+			const token = localStorage.getItem('token');
+
 			const response = await api.post<Room>(PREFIX + '/rooms', roomData, {
 				headers: {
-					'X-User-ID': ownerId
+					'X-User-ID': ownerId,
+					'Authorization': `Bearer ${token}`
 				}
 			});
 			debugLog('createRoom: Success', { roomId: response.data.id, code: response.data.code });

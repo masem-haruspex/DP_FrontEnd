@@ -1,0 +1,128 @@
+// Multiplayer/Multiplayer.module.scss
+@use '../styles/vars' as *;
+@use '../styles/mixins' as *;
+
+.multiplayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2000;
+  pointer-events: auto;
+}
+
+.roomContent {
+  display: flex;
+  flex-direction: column;
+  width: 30vw;
+  height: 24rem;
+  max-width: 30vw;
+  max-height: 24rem;
+  background: rgba(black, 0.6);
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.roomHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: auto;
+  width: 100%;
+  padding: $spacing-md $spacing-sm;
+  box-sizing: border-box;
+  gap: 1.8rem;
+  margin: 0;
+}
+
+.roomInfo{
+  display: flex;
+  gap: 0.8rem;
+
+  h2 {
+    font-size: 1.1rem;
+    margin: 0;
+    color: $magic-pink;
+  }
+}
+
+.leaveButton {
+  @include magical-button();
+  padding: $spacing-sm $spacing-md;
+  padding-right: 1.8rem;
+  font-size: 1.0rem;
+  background: linear-gradient(45deg, rgba($color-error, 0.8), rgba($magic-pink, 0.9));
+  color: white;
+  
+  &:hover:not(:disabled) {
+    border-color: transparent;
+    transform: translateY(-2px);
+  }
+}
+
+// Responsive design
+@media (max-width: 1024px) {
+  .roomHeader {
+    flex-direction: column;
+    gap: $spacing-md;
+    text-align: center;
+  }
+  
+  .roomInfo {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: $spacing-md;
+  }
+}
+
+@media (max-width: 768px) {
+  .multiplayer {
+    overflow-y: auto;
+  }
+  
+  .roomHeader {
+    margin: $spacing-md;
+    padding: $spacing-sm $spacing-md;
+    
+    h2 {
+      font-size: 1.5rem;
+    }
+  }
+  
+  .roomContent {
+    flex-direction: column;
+    padding: 0 $spacing-md $spacing-md;
+  }
+  
+  .roomInfo {
+    font-size: 0.8rem;
+    gap: $spacing-md;
+  }
+  
+  .focusIndicator {
+    font-size: 0.75rem;
+    padding: $spacing-xs;
+  }
+  
+  .leaveButton {
+    padding: $spacing-xs $spacing-sm;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .roomHeader {
+    margin: $spacing-sm;
+    
+    h2 {
+      font-size: 1.3rem;
+    }
+  }
+  
+  .roomContent {
+    padding: 0 $spacing-sm $spacing-sm;
+    gap: $spacing-md;
+  }
+}
+

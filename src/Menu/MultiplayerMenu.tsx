@@ -254,7 +254,6 @@ export default function MultiplayerMenu({ onBack, onRoomCreated }: MultiplayerMe
       transition={{ duration: 0.2 }}
     >
       <div className={styles.roomCreated}>
-        <h3 className={styles.successTitle}>Room Created Successfully!</h3>
 
         {createdRoom && (
           <div className={styles.roomDetails}>

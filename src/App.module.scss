@@ -85,6 +85,7 @@
   font-size: 0.9rem;
   background: rgba(255, 255, 255, 0.8);
   color: $twilight-purple;
+  display: none;
   
   &:hover:not(:disabled) {
     border-color: $magic-pink;

@@ -1,0 +1,119 @@
+// AudioControls/AudioControls.module.scss
+@use '../styles/vars' as *;
+@use '../styles/mixins' as *;
+
+.controlsPanel {
+  @include magical-card;
+  width: 320px;
+  padding: $spacing-md;
+  pointer-events: auto;
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(black, 0.6);
+  backdrop-filter: none;
+  border-radius: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  &::before {
+    display: none;
+  }
+  border: none;
+}
+
+.controlGroup {
+  display: flex;
+  align-items: center;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.controlLabel {
+  min-width: 6rem;
+  color: white;
+  font-size: 1rem;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.controlSlider {
+  @include magical-slider;
+  flex: 1;
+  margin: 0;
+}
+
+.controlValue {
+  min-width: 3.3rem;
+  text-align: right;
+  font-size: 1rem;
+  color: white;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.controlsPanel.compact {
+  padding: $spacing-md;
+
+  .controlGroup {
+    margin-bottom: $spacing-sm;
+    gap: $spacing-sm;
+  }
+
+  .controlLabel {
+    min-width: 60px;
+    font-size: 0.8rem;
+  }
+
+  .controlValue {
+    min-width: 40px;
+    font-size: 0.8rem;
+    padding: 2px $spacing-xs;
+  }
+
+  .controlSlider {
+    height: 3px;
+
+    &::-webkit-slider-thumb {
+      width: 14px;
+      height: 14px;
+    }
+
+    &::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .controlsPanel {
+    padding: $spacing-md;
+    max-width: 100%;
+  }
+
+  .controlGroup {
+    flex-direction: column;
+    align-items: stretch;
+    gap: $spacing-sm;
+  }
+
+  .controlLabel {
+    min-width: auto;
+    text-align: center;
+    margin-bottom: $spacing-xs;
+  }
+
+  .controlValue {
+    text-align: center;
+    min-width: auto;
+  }
+
+  .controlSlider {
+    order: 2;
+  }
+}

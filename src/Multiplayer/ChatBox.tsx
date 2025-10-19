@@ -10,13 +10,14 @@ interface ChatBoxProps {
   roomCode: string;
   webSocketService: WebSocketService;
   onFocusChange?: (isChatFocused: boolean) => void;
+  isFocused: boolean;
+  setIsFocused: any;
 }
 
-export default function ChatBox({ roomCode, webSocketService, onFocusChange }: ChatBoxProps) {
+export default function ChatBox({ roomCode, webSocketService, onFocusChange, isFocused, setIsFocused }: ChatBoxProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
@@ -42,7 +43,6 @@ export default function ChatBox({ roomCode, webSocketService, onFocusChange }: C
     };
 
     webSocketService.on('CHAT_MESSAGE', handleChatMessage);
-    webSocketService.on('NEW_MESSAGE', handleChatMessage);
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Tab') {
@@ -59,7 +59,6 @@ export default function ChatBox({ roomCode, webSocketService, onFocusChange }: C
 
     return () => {
       webSocketService.off('CHAT_MESSAGE', handleChatMessage);
-      webSocketService.off('NEW_MESSAGE', handleChatMessage);
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [roomCode, webSocketService, isFocused]);
@@ -128,20 +127,10 @@ export default function ChatBox({ roomCode, webSocketService, onFocusChange }: C
 
   return (
     <div className={styles.chatBox}>
-      <div className={styles.chatHeader}>
-        <h3>Chat {isFocused ? '(Focused - Press Tab to switch to keyboard)' : '(Press Tab to focus)'}</h3>
-        <button
-          onClick={loadMessages}
-          className={styles.refreshButton}
-          type="button"
-        >
-          Refresh
-        </button>
-      </div>
 
       <div className={styles.messagesContainer}>
         {messages.length === 0 ? (
-          <div className={styles.noMessages}>No messages yet. Start the conversation!</div>
+          <div className={styles.noMessages}>No messages yet. Say something nice!</div>
         ) : (
           messages.map((message) => (
             <div

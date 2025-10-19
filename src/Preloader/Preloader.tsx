@@ -7,7 +7,7 @@ import { Text } from '@react-three/drei';
 import { getSharedDracoLoader } from '../lib/pianoHelpers';
 import * as THREE from 'three';
 
-const DEBUG = true;
+const DEBUG = false;
 
 interface PreloaderProps {
   onLoaded?: () => void;

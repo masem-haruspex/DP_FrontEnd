@@ -14,7 +14,7 @@ import styles from './App.module.scss';
 import SinglePlayer from './SinglePlayer/SinglePlayer';
 import { useAuth } from './Auth/AuthContext';
 import { WebSocketService } from './Multiplayer/WebSocketService';
-import MultiplayerRoom from './Multiplayer/MultiplayerRoom';
+import Multiplayer from './Multiplayer/Multiplayer';
 import { menuStateAtom, cameraRotationAtom, cameraPositionAtom, markIntroAnimationsPlayedAtom } from './atoms/menuState';
 import { initializeAudioAtom, isAudioReadyAtom } from './atoms/audio';
 import { useAtomValue, useSetAtom } from 'jotai';
@@ -23,8 +23,9 @@ import { authAtom, preferredKeyboardAtom } from './atoms/auth';
 import axiosInstance from './lib/axiosInstance';
 import { setCookie } from './lib/cookies';
 import { useQueryClient } from '@tanstack/react-query';
+import { singlePlayerAudioSettingsAtom, multiplayerAudioSettingsAtom } from './atoms/audio';
 
-const DEBUG = true;
+const DEBUG = false;
 
 export default function App() {
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
@@ -36,26 +37,8 @@ export default function App() {
   const [startLoadingAnimations, setStartLoadingAnimations] = useState(false);
   const [currentMultiplayerRoom, setCurrentMultiplayerRoom] = useState<string | null>(null);
   const [webSocketService, setWebSocketService] = useState<WebSocketService | null>(null);
-  const [singlePlayerSettings, setSinglePlayerSettings] = useState({
-    volume: 0.2,
-    reverb: 0.5,
-    delay: 0.3,
-    distortion: 0.2,
-    chorus: 0.4,
-    bass: 0,
-    mid: 0,
-    treble: 0
-  });
-  const [multiplayerSettings, setMultiplayerSettings] = useState({
-    volume: 0.2,
-    reverb: 0.5,
-    delay: 0.3,
-    distortion: 0.2,
-    chorus: 0.4,
-    bass: 0,
-    mid: 0,
-    treble: 0
-  });
+  const queryClient = useQueryClient();
+  const rememberMe = false;
 
   const isAudioReady = useAtomValue(isAudioReadyAtom);
   const initializeAudio = useSetAtom(initializeAudioAtom);
@@ -68,8 +51,8 @@ export default function App() {
   const setAuth = useSetAtom(authAtom);
   const setPreferredKeyboard = useSetAtom(preferredKeyboardAtom);
   const setToasts = useSetAtom(toastsAtom);
-  const queryClient = useQueryClient();
-  const rememberMe = false;
+  const [singlePlayerSettings, setSinglePlayerSettings] = useAtom(singlePlayerAudioSettingsAtom);
+  const [multiplayerSettings, setMultiplayerSettings] = useAtom(multiplayerAudioSettingsAtom);
 
   const handleEnterClick = async () => {
     if(DEBUG) console.log('User clicked to start');
@@ -422,17 +405,15 @@ export default function App() {
         <SinglePlayer
           onBack={handleBackToMenu}
           onSettingsChange={setSinglePlayerSettings}
-          currentSettings={singlePlayerSettings}
         />
       )}
 
       {currentMultiplayerRoom && webSocketService && (
-        <MultiplayerRoom
+        <Multiplayer
           roomCode={currentMultiplayerRoom}
           onLeave={handleLeaveMultiplayer}
           webSocketService={webSocketService}
           onSettingsChange={setMultiplayerSettings}
-          currentSettings={multiplayerSettings}
         />
       )}
 

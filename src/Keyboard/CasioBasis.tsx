@@ -3,12 +3,9 @@ interface CasioBasisProps {
 }
 
 export default function CasioBasis({ gltf }: CasioBasisProps) {
-  console.log('CasioBasis rendering with preloaded model:', !!gltf);
   
-  if (!gltf) {
-    console.log('CasioBasis: No gltf provided, rendering nothing');
+  if (!gltf)
     return null;
-  }
 
   return <primitive object={gltf.scene} />;
 }

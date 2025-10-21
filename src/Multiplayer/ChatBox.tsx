@@ -14,6 +14,8 @@ interface ChatBoxProps {
   setIsFocused: any;
 }
 
+const DEBUG = false;
+
 export default function ChatBox({ roomCode, webSocketService, onFocusChange, isFocused, setIsFocused }: ChatBoxProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -26,7 +28,7 @@ export default function ChatBox({ roomCode, webSocketService, onFocusChange, isF
     loadMessages();
 
     const handleChatMessage = (event: any) => {
-      console.log('Received chat message via WebSocket:', event);
+      if(DEBUG) console.log('Received chat message via WebSocket:', event);
 
       const messageData = event.payload || event;
 
@@ -73,9 +75,9 @@ export default function ChatBox({ roomCode, webSocketService, onFocusChange, isF
 
   const loadMessages = async () => {
     try {
-      console.log('Loading messages for room:', roomCode);
+      if(DEBUG) console.log('Loading messages for room:', roomCode);
       const roomMessages = await MessagingService.getRoomMessages(roomCode);
-      console.log('Loaded messages:', roomMessages);
+      if(DEBUG) console.log('Loaded messages:', roomMessages);
       setMessages(roomMessages);
     } catch (error) {
       console.error('Failed to load messages:', error);
@@ -92,14 +94,14 @@ export default function ChatBox({ roomCode, webSocketService, onFocusChange, isF
 
     setIsLoading(true);
     try {
-      console.log('Sending message:', { roomCode, content: newMessage.trim() });
+      if(DEBUG) console.log('Sending message:', { roomCode, content: newMessage.trim() });
 
       const sentMessage = await MessagingService.sendMessage(user.id, {
         roomCode,
         content: newMessage.trim()
       });
 
-      console.log('Message sent successfully:', sentMessage);
+      if(DEBUG) console.log('Message sent successfully:', sentMessage);
 
       setNewMessage('');
 

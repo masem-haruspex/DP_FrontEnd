@@ -102,13 +102,12 @@ function easeInOutCubic(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
-// this can be used for manually orbiting and positioning the camera with your mouse and then clicking "p" on the keyboard to print the position & rotation
+//// this can be used for manually orbiting and positioning the camera with your mouse and then clicking "p" on the keyboard to print the position & rotation
 //// Camera/Camera.tsx
 //import { useThree } from "@react-three/fiber";
 //import { useEffect, useState } from "react";
 //import * as THREE from "three";
 //import { OrbitControls } from "@react-three/drei";
-//import { degreesToRad } from "../lib/pianoHelpers";
 //
 //interface CameraProps {
 //  rotation?: [number, number, number];
@@ -126,7 +125,6 @@ function easeInOutCubic(t: number): number {
 //  const { camera } = useThree();
 //  const [isInitialized, setIsInitialized] = useState(false);
 //
-//  // Function to log camera position and rotation
 //  const logCameraPosition = () => {
 //    const position = camera.position;
 //    const rotation = camera.rotation;
@@ -145,20 +143,16 @@ function easeInOutCubic(t: number): number {
 //    console.log('Copyable position array:');
 //    console.log(`[${position.x.toFixed(3)}, ${position.y.toFixed(3)}, ${position.z.toFixed(3)}]`);
 //
-//    // Also log as a Vector3 for easy copying
 //    console.log('As Vector3:');
 //    console.log(`new THREE.Vector3(${position.x.toFixed(3)}, ${position.y.toFixed(3)}, ${position.z.toFixed(3)})`);
 //  };
 //
-//  // Only set initial position once on mount
 //  useEffect(() => {
 //    if (camera instanceof THREE.PerspectiveCamera && !isInitialized) {
 //      if (initialPosition) {
-//        // Use provided initial position
 //        camera.position.set(...initialPosition);
 //        camera.lookAt(0, 0, 0);
 //      } else {
-//        // Use the orbit calculation only for initial setup
 //        const orbitRadius = 1;
 //        const target = new THREE.Vector3(0, 0, 0);
 //        const offset = new THREE.Vector3(0, 0, orbitRadius);
@@ -170,7 +164,6 @@ function easeInOutCubic(t: number): number {
 //      camera.updateMatrixWorld();
 //      setIsInitialized(true);
 //
-//      // Log initial position
 //      if (logPosition) {
 //        setTimeout(() => {
 //          console.log('🎬 Initial Camera Position:');
@@ -180,7 +173,6 @@ function easeInOutCubic(t: number): number {
 //    }
 //  }, [camera, rotation, logPosition, initialPosition, isInitialized]);
 //
-//  // Add keyboard shortcut to log position manually
 //  useEffect(() => {
 //    const handleKeyPress = (event: KeyboardEvent) => {
 //      if ((event.key === 'p' || event.key === 'P') && logPosition) {
@@ -201,7 +193,6 @@ function easeInOutCubic(t: number): number {
 //          enableRotate={true}
 //          onChange={() => {
 //            if (logPosition) {
-//              // Throttle logging to avoid spamming console
 //              requestAnimationFrame(() => {
 //                logCameraPosition();
 //              });

@@ -1,3 +1,4 @@
+// Keyboard/MusicNote.tsx
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef, useMemo, type ReactNode } from 'react';
 import * as THREE from 'three';
@@ -9,7 +10,7 @@ interface MusicNoteProps {
     lifespan: number;
     glowColor?: string;
     glowIntensity?: number;
-    gltf: any; // Changed from useGLTF to accept preloaded model
+    gltf: any;
 }
 
 export default function MusicNote({ 
@@ -18,7 +19,7 @@ export default function MusicNote({
     lifespan, 
     glowColor = '#ffef00', 
     glowIntensity = 1,
-    gltf // Added gltf prop
+    gltf 
 }: MusicNoteProps) {
     const groupRef = useRef<THREE.Group>(null);
     const velocity = useRef(10.5 + Math.random() * 0.3);
@@ -26,12 +27,10 @@ export default function MusicNote({
     const swaySpeed = useRef(1 + Math.random() * 2);
     const swayAmount = useRef(0.05 + Math.random() * 0.05);
     
-    // Rotation variables
     const rotationSpeedX = useRef(0.5 + Math.random() * 1);
     const rotationSpeedY = useRef(0.3 + Math.random() * 0.7);
     const rotationSpeedZ = useRef(0.2 + Math.random() * 0.5);
     
-    // Create a glowing material
     const glowMaterial = useMemo(() => {
         return new THREE.MeshStandardMaterial({
             color: new THREE.Color(glowColor),
@@ -43,7 +42,6 @@ export default function MusicNote({
         });
     }, [glowColor, glowIntensity]);
 
-    // Apply material to model
     useEffect(() => {
         if (gltf && groupRef.current) {
             const clonedScene = gltf.scene.clone();
@@ -59,17 +57,14 @@ export default function MusicNote({
     useFrame((_, delta) => {
         if (!groupRef.current) return;
         
-        // Movement
         groupRef.current.position.y += velocity.current * delta;
         swayPhase.current += swaySpeed.current * delta;
         groupRef.current.position.x = initialPosition[0] + Math.sin(swayPhase.current) * swayAmount.current;
         
-        // Rotation
         groupRef.current.rotation.x += rotationSpeedX.current * delta * 0.1;
         groupRef.current.rotation.y += rotationSpeedY.current * delta * 0.5;
         groupRef.current.rotation.z += rotationSpeedZ.current * delta * 0.1;
         
-        // Additional sway rotation
         groupRef.current.rotation.z += Math.sin(swayPhase.current * 1.5) * 0.2 * delta;
     });
 
@@ -91,7 +86,7 @@ export function BloomScene({ children }: { children: ReactNode }) {
       {children}
       <EffectComposer>
         <Bloom
-          intensity={1.5}
+          intensity={1.2}
           kernelSize={3}
           luminanceThreshold={0}
           luminanceSmoothing={0.7}

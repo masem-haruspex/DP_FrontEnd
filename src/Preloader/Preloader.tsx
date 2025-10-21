@@ -74,7 +74,6 @@ export default function Preloader({ onLoaded }: PreloaderProps) {
 
               console.log('Scene children count:', gltf.scene.children.length);
 
-              // Traverse and check for specific types with proper TypeScript casting
               gltf.scene.traverse((child) => {
                 if ((child as THREE.SkinnedMesh).isSkinnedMesh) {
                   console.log('SkinnedMesh found:', child);
@@ -86,13 +85,11 @@ export default function Preloader({ onLoaded }: PreloaderProps) {
                     console.log('Mesh found with geometry:', mesh.geometry.attributes);
                   }
                 }
-                // Check for animation targets
                 if (child.animations && child.animations.length > 0) {
                   console.log('Object with animations:', child);
                 }
               });
 
-              // Check if animations have any tracks
               gltf.animations.forEach((anim: THREE.AnimationClip, idx: number) => {
                 console.log(`Animation ${idx} (${anim.name}) tracks:`, anim.tracks.length);
                 if (anim.tracks.length > 0) {
@@ -175,7 +172,6 @@ export default function Preloader({ onLoaded }: PreloaderProps) {
     });
 
     return () => {
-      // Don't dispose shared draco loader
     };
   }, [hasStarted, onLoaded, setModels, modelUrls]);
 
@@ -206,155 +202,3 @@ export default function Preloader({ onLoaded }: PreloaderProps) {
 
   return null;
 }
-//// src/Preloader/Preloader.tsx
-//import { useEffect, useState } from 'react';
-//import { GLTFLoader } from 'three-stdlib';
-//import { useSetAtom } from 'jotai';
-//import { modelsAtom } from '../atoms/models';
-//import { Text } from '@react-three/drei';
-//import { getSharedDracoLoader } from '../pianoHelpers';
-//
-//const DEBUG = false;
-//
-//interface PreloaderProps {
-//  onLoaded?: () => void;
-//  onProgress?: (progress: number) => void;
-//}
-//
-//export default function Preloader({ onLoaded, onProgress }: PreloaderProps) {
-//  const [error, setError] = useState<string | null>(null);
-//  const setModels = useSetAtom(modelsAtom);
-//  const [hasStarted, setHasStarted] = useState(false);
-//
-//
-//  const modelUrls = [
-//    { url: '/models/note.glb', id: 'note-model' },
-//    { url: '/models/casio_basis.glb', id: 'casio-basis' },
-//    ...Array.from({ length: 52 }, (_, i) => ({
-//      url: `/models/white_keys/white_keys.${(i + 1).toString().padStart(3, '0')}.glb`,
-//      id: `white-key-${(i + 1).toString().padStart(3, '0')}`
-//    })),
-//    ...Array.from({ length: 36 }, (_, i) => ({
-//      url: `/models/black_keys/black_keys.${(i + 1).toString().padStart(3, '0')}.glb`,
-//      id: `black-key-${(i + 1).toString().padStart(3, '0')}`
-//    }))
-//  ];
-//
-//  useEffect(() => {
-//    if (hasStarted) return;
-//    setHasStarted(true);
-//
-//    if(DEBUG) console.log('[PRELOADER] Starting to load', modelUrls.length, 'models');
-//
-//    const completedCount = { current: 0 };
-//    const loadedModels: any[] = new Array(modelUrls.length);
-//    const totalModels = modelUrls.length;
-//    const activeLoaders = new Set();
-//
-//    const loader = new GLTFLoader();
-//    const dracoLoader = getSharedDracoLoader();
-//    loader.setDRACOLoader(dracoLoader);
-//
-//    const loadModel = (url: string, index: number, assetId: string) => {
-//      if(DEBUG) console.log(`[PRELOADER] Loading ${assetId} (${index + 1}/${totalModels})`);
-//
-//      return new Promise<void>((resolve, reject) => {
-//        activeLoaders.add(assetId);
-//
-//        loader.load(
-//          url,
-//          (gltf) => {
-//            if(DEBUG) console.log('Full GLTF structure:', gltf);
-//            if(DEBUG) console.log('Scene children:', gltf.scene.children);
-//
-//            loadedModels[index] = gltf;
-//            completedCount.current += 1;
-//            activeLoaders.delete(assetId);
-//
-//            const progress = Math.floor((completedCount.current / totalModels) * 100);
-//            if(DEBUG) console.log(`[PRELOADER] ✅ ${assetId} loaded. Progress: ${progress}% (${completedCount.current}/${totalModels})`);
-//            onProgress?.(progress);
-//            resolve();
-//          },
-//          undefined,
-//          (error) => {
-//            activeLoaders.delete(assetId);
-//            console.error(`[PRELOADER] ❌ Failed to load ${assetId}:`, error);
-//            setError(`Failed to load model: ${assetId}`);
-//            reject(error);
-//          }
-//        );
-//      });
-//    };
-//
-//    const promises = modelUrls.map((model, index) =>
-//      loadModel(model.url, index, model.id)
-//    );
-//
-//    Promise.allSettled(promises).then((results) => {
-//      const failed = results.filter(result => result.status === 'rejected');
-//      if(DEBUG) console.log(`[PRELOADER] All models processed. Failed: ${failed.length}, Success: ${results.length - failed.length}`);
-//
-//      if (failed.length > 0) {
-//        console.error('[PRELOADER] Some models failed to load');
-//        setError(`${failed.length} models failed to load. Check console for details.`);
-//        return;
-//      }
-//
-//      try {
-//        const [noteModel, casioBasisModel, ...keyModels] = loadedModels;
-//        const whiteKeyModels = keyModels.slice(0, 52);
-//        const blackKeyModels = keyModels.slice(52);
-//
-//        if (!noteModel?.scene || !casioBasisModel?.scene) {
-//          throw new Error('Critical models (note.glb or casio_basis.glb) failed to load');
-//        }
-//
-//        if(DEBUG) console.log('[PRELOADER] ✅ All models loaded successfully, setting atom');
-//        setModels({
-//          whiteKeyModels,
-//          blackKeyModels,
-//          noteModel,
-//          casioBasisModel
-//        });
-//
-//        onLoaded?.();
-//        if(DEBUG) console.log('[PRELOADER] ✅ onLoaded callback called');
-//      } catch (e) {
-//        console.error('[PRELOADER] Model organization error:', e);
-//        setError(`Error: ${e instanceof Error ? e.message : 'Failed to process models'}`);
-//      }
-//    });
-//
-//    return () => {
-//      // Don't dispose shared draco loader
-//    };
-//  }, [onLoaded, onProgress, setModels]);
-//
-//  if (error) {
-//    return (
-//      <group position={[0, 0, 0]}>
-//        <Text
-//          position={[0, 0, 0]}
-//          fontSize={0.3}
-//          color="red"
-//          anchorX="center"
-//          anchorY="middle"
-//        >
-//          {error}
-//        </Text>
-//        <Text
-//          position={[0, -0.5, 0]}
-//          fontSize={0.2}
-//          color="orange"
-//          anchorX="center"
-//          anchorY="middle"
-//        >
-//          Check console for details
-//        </Text>
-//      </group>
-//    );
-//  }
-//
-//  return null;
-//}

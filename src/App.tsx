@@ -24,8 +24,7 @@ import axiosInstance from './lib/axiosInstance';
 import { setCookie } from './lib/cookies';
 import { useQueryClient } from '@tanstack/react-query';
 import { singlePlayerAudioSettingsAtom, multiplayerAudioSettingsAtom } from './atoms/audio';
-
-const DEBUG = false;
+import { RoomService } from './Multiplayer/RoomService';
 
 export default function App() {
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
@@ -55,17 +54,13 @@ export default function App() {
   const [multiplayerSettings, setMultiplayerSettings] = useAtom(multiplayerAudioSettingsAtom);
 
   const handleEnterClick = async () => {
-    if(DEBUG) console.log('User clicked to start');
     setHasUserInteracted(true);
     setStartLoadingAnimations(true);
 
-    initializeAudio().catch(error => {
-      console.error('Audio initialization failed:', error);
-    });
-
+    initializeAudio().catch(error => console.error('Audio initialization failed:', error));
   };
+
   const handleLoadingComplete = useCallback(() => {
-    if (DEBUG) console.log('[APP] Loading complete, showing main menu');
     setShowMainMenu(true);
   }, []);
 
@@ -88,15 +83,31 @@ export default function App() {
       const wsService = new WebSocketService();
 
       try {
+        const participants = await RoomService.getRoomParticipants(roomCode);
+
+        const playerObjects = participants.map((participant, index) => {
+          console.log('room participant:', JSON.stringify(participant, null, 2));
+          const totalPlayers = participants.length;
+          const angle = (index / Math.max(totalPlayers, 2)) * Math.PI * 2;
+          const radius = 20;
+
+          return {
+            id: participant.userId,
+            username: participant.username || `User ${(participant.userId).slice(0, 8)}`,
+            position: [
+              Math.cos(angle) * radius,
+              -8,
+              Math.sin(angle) * radius
+            ] as [number, number, number],
+            preferredKeyboard: participant.preferredKeyboard || 'Casio'
+          };
+        });
+
+        setMultiplayerPlayers(playerObjects);
+
         await wsService.connect(roomCode, user.id, token || '');
         setWebSocketService(wsService);
 
-        setMultiplayerPlayers([{
-          id: user.id,
-          username: user.username || 'You',
-          position: [0, -8, -16] as [number, number, number],
-          preferredKeyboard: user.preferredKeyboard || 'Casio'
-        }]);
       } catch (error) {
         console.error('Failed to connect WebSocket:', error);
         setShowMainMenu(true);
@@ -164,7 +175,6 @@ export default function App() {
         },
       ]);
 
-      if(DEBUG) console.log("OAuth login successfully!");
       window.history.replaceState({}, document.title, window.location.pathname);
       handleStraightToMenu();
     };
@@ -207,15 +217,56 @@ export default function App() {
     if (!webSocketService || !currentMultiplayerRoom) return;
 
     const handlePlayerJoined = (playerData: any) => {
+
       setMultiplayerPlayers(prev => {
-        if (prev.some(p => p.id === playerData.id)) return prev;
-        return [...prev, playerData];
+        const playerId = playerData.userId || playerData.id;
+
+        if (!playerId) {
+          console.error('[App] No player ID found in join event:', playerData);
+          return prev;
+        }
+
+        if (prev.some(p => p.id === playerId)) {
+          return prev;
+        }
+
+        const newPlayerCount = prev.length + 1;
+        const angle = (newPlayerCount / Math.max(newPlayerCount, 2)) * Math.PI * 2;
+        const radius = 20;
+
+        const position: [number, number, number] = [
+          Math.cos(angle) * radius,
+          -8,
+          Math.sin(angle) * radius
+        ];
+
+        const newPlayer = {
+          id: playerId, 
+          username: playerData.username || `User ${playerId.slice(0, 8)}`,
+          position,
+          preferredKeyboard: playerData.preferredKeyboard || 'Casio'
+        };
+
+        return [...prev, newPlayer];
       });
     };
 
-    const handlePlayerLeft = (playerId: string) => {
-      setMultiplayerPlayers(prev => prev.filter(p => p.id !== playerId));
-    };
+    const handlePlayerLeft = (eventData: any) => {
+  const playerId = eventData.userId || eventData.payload?.userId;
+
+  if (!playerId) {
+    console.error('[App] No player ID found in leave event:', eventData);
+    return;
+  }
+
+  console.log(`[App] Removing player: ${playerId}`);
+  setMultiplayerPlayers(prev => {
+    const newPlayers = prev.filter(p => p.id !== playerId);
+    console.log(`[App] Players after removal: ${newPlayers.length}`);
+    return newPlayers;
+  });
+};
+
 
     webSocketService.on('PLAYER_JOINED', handlePlayerJoined);
     webSocketService.on('PLAYER_LEFT', handlePlayerLeft);
@@ -228,26 +279,13 @@ export default function App() {
 
   useEffect(() => {
     if (!preloaderStarted) {
-      if(DEBUG) console.log('[APP] Starting preloader immediately');
       setPreloaderStarted(true);
     }
   }, []);
 
   useEffect(() => {
-    if (DEBUG) {
-      console.log('[APP] Checking completion status:', {
-        modelsLoaded,
-        isAudioReady,
-        showMainMenu,
-        showSinglePlayer,
-        currentMultiplayerRoom,
-      });
-    }
-
-    if (modelsLoaded && isAudioReady && !showMainMenu && !showSinglePlayer && !currentMultiplayerRoom) {
-      if (DEBUG) console.log('[APP] All conditions met, calling handleLoadingComplete');
+    if (modelsLoaded && isAudioReady && !showMainMenu && !showSinglePlayer && !currentMultiplayerRoom)
       handleLoadingComplete();
-    }
   }, [modelsLoaded, isAudioReady, showMainMenu, showSinglePlayer, currentMultiplayerRoom, handleLoadingComplete]);
 
   return (
@@ -308,7 +346,6 @@ export default function App() {
             gl.autoClear = true;
           }}
         >
-          <SceneDebugger />
           <VisibilityController />
           <BackgroundPan />
           <Camera rotation={cameraRotation} position={cameraPosition} />
@@ -322,6 +359,7 @@ export default function App() {
             {showSinglePlayer && modelsLoaded && (
               <Keyboard
                 userId={user?.id || 'local'}
+                scale={1.0}
                 position={[0, -8, -16]}
                 isLocalPlayer={true}
                 effectSettings={singlePlayerSettings}
@@ -329,17 +367,55 @@ export default function App() {
               />
             )}
 
-            {currentMultiplayerRoom && modelsLoaded && multiplayerPlayers.map((player) => (
+            {currentMultiplayerRoom && modelsLoaded && multiplayerPlayers.map((player, index) => {
+              const totalPlayers = multiplayerPlayers.length;
+              const currentPlayerIndex = multiplayerPlayers.findIndex(p => p.id === user?.id);
+
+              let playerPosition: [number, number, number] = [0, 0, 0];
+              let rotationY = 0;
+
+              if (totalPlayers === 1) {
+                playerPosition = [0, -6, -10];
+                rotationY = 0;
+            } else if (totalPlayers === 2) {
+              if (player.id === user?.id) {
+                playerPosition = [0, -6, -10];
+            } else {
+                playerPosition = [25, -6, -11];
+              rotationY = degreesToRad(32); 
+            }
+            }
+            else if (totalPlayers === 3) {
+              if (player.id === user?.id) {
+                playerPosition = [0, -8, -16];
+                rotationY = 0;
+            } else {
+              const isLeftPlayer = index < currentPlayerIndex;
+              if (isLeftPlayer) {
+                playerPosition = [-10, -8, -14];
+                rotationY = degreesToRad(25);
+            } else {
+              playerPosition = [10, -8, -14];
+              rotationY = degreesToRad(-25);
+            }
+            }
+            }
+
+            return (
+            <group key={player.id} position={playerPosition} rotation={[0, rotationY, 0]}>
               <Keyboard
-                key={player.id}
                 userId={player.id}
-                position={player.position}
+                scale={totalPlayers === 1 ? 1.0 : 1.0}
+                position={playerPosition}
                 isLocalPlayer={player.id === user?.id}
                 effectSettings={multiplayerSettings}
                 webSocketService={webSocketService}
+                roomCode={currentMultiplayerRoom}
                 preferredKeyboard={player.preferredKeyboard}
               />
-            ))}
+            </group>
+            );
+            })}
 
             {!showSinglePlayer && !currentMultiplayerRoom &&
               <group position={[-1, 0.8, -3]} rotation={[degreesToRad(28), degreesToRad(0), degreesToRad(0)]}>
@@ -425,21 +501,6 @@ export default function App() {
       </button>
     </div>
   );
-}
-
-function SceneDebugger() {
-  const { scene } = useThree();
-
-  useEffect(() => {
-    if (DEBUG) {
-      console.log('[SCENE DEBUG] Scene children count:', scene.children.length);
-      scene.children.forEach((child, index) => {
-        console.log(`[SCENE DEBUG] Child ${index}:`, child.name, child.type, child.visible);
-      });
-    }
-  });
-
-  return null;
 }
 
 function BackgroundPan() {

@@ -18,6 +18,7 @@ interface MultiplayerProps {
 export default function Multiplayer({ roomCode, onLeave, webSocketService, onSettingsChange }: MultiplayerProps) {
   const { user } = useAuth();
   const [roomInfo, setRoomInfo] = useState<any>(null);
+  const [participantCount, setParticipantCount] = useState(0);
   const [multiplayerSettings, setMultiplayerSettings] = useAtom(multiplayerAudioSettingsAtom);
   const [, applyAudioSettings] = useAtom(applyAudioSettingsAtom);
   const [isChatFocused, setIsChatFocused] = useState(false);
@@ -26,6 +27,8 @@ export default function Multiplayer({ roomCode, onLeave, webSocketService, onSet
     const loadRoomData = async () => {
       try {
         const room = await RoomService.getRoom(roomCode);
+        const participants = await RoomService.getRoomParticipants(roomCode);
+        setParticipantCount(participants.length);
         setRoomInfo(room);
       } catch (error) {
         console.error('Failed to load room data:', error);
@@ -33,6 +36,40 @@ export default function Multiplayer({ roomCode, onLeave, webSocketService, onSet
     };
     loadRoomData();
   }, [roomCode]);
+
+    useEffect(() => {
+    if (!webSocketService) return;
+
+    const handlePlayerJoined = () => {
+      setParticipantCount(prev => prev + 1);
+      // Also refresh room data to get updated info
+      refreshRoomData();
+    };
+
+    const handlePlayerLeft = () => {
+      setParticipantCount(prev => Math.max(1, prev - 1)); // Ensure at least 1
+      refreshRoomData();
+    };
+
+    webSocketService.on('PLAYER_JOINED', handlePlayerJoined);
+    webSocketService.on('PLAYER_LEFT', handlePlayerLeft);
+
+    return () => {
+      webSocketService.off('PLAYER_JOINED', handlePlayerJoined);
+      webSocketService.off('PLAYER_LEFT', handlePlayerLeft);
+    };
+  }, [webSocketService, roomCode]);
+
+  const refreshRoomData = async () => {
+    try {
+      const room = await RoomService.getRoom(roomCode);
+      const participants = await RoomService.getRoomParticipants(roomCode);
+      setRoomInfo(room);
+      setParticipantCount(participants.length);
+    } catch (error) {
+      console.error('Failed to refresh room data:', error);
+    }
+  };
 
   const handleLeaveRoom = async () => {
     if (user) {
@@ -70,7 +107,7 @@ export default function Multiplayer({ roomCode, onLeave, webSocketService, onSet
           <div className={styles.roomInfo}>
             <h2>Name: {roomInfo?.name || "Untitled"}</h2>
             <h2>Code: {roomCode}</h2>
-            <h2>Players: {roomInfo?.participantCount || 1}/{roomInfo?.maxParticipants || 2}</h2>
+            <h2>Players: {participantCount}/{roomInfo?.maxParticipants}</h2>
           </div>
         </div>
 

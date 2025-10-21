@@ -6,9 +6,9 @@ const DEBUG_PREFIX = '[RoomService]';
 const PREFIX = "http://localhost:8082/api";
 
 const debugLog = (message: string, data?: any) => {
-	const DEBUG_MODE = true;
+	const DEBUG = false;
 
-	if (DEBUG_MODE) {
+	if (DEBUG) {
 		const timestamp = new Date().toISOString();
 		const logMessage = `${DEBUG_PREFIX} [${timestamp}] ${message}`;
 		if (data !== undefined) {
@@ -77,6 +77,18 @@ export const RoomService = {
 			throw error;
 		}
 	},
+
+async getRoomParticipants(code: string): Promise<any[]> {
+  debugLog('getRoomParticipants: Starting request', { code });
+  try {
+    const response = await api.get<any[]>(`${PREFIX}/rooms/${code}/participants`);
+    debugLog('getRoomParticipants: Success', { participantCount: response.data.length });
+    return response.data;
+  } catch (error) {
+    debugLog('getRoomParticipants: Error', error);
+    throw error;
+  }
+},
 
 	async deleteRoom(roomId: string, ownerId: string): Promise<void> {
 		debugLog('deleteRoom: Starting request', { roomId, ownerId });

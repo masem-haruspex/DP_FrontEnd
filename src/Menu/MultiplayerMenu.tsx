@@ -36,7 +36,6 @@ export default function MultiplayerMenu({ onBack, onRoomCreated }: MultiplayerMe
   });
 
   const handleJoinRoom = async () => {
-    console.log('Join Room:', { roomCode, roomPassword });
     try {
       if (!user) {
         // Handle authentication

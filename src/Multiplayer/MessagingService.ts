@@ -6,8 +6,8 @@ const DEBUG_PREFIX = '[MessagingService]';
 const PREFIX = "http://localhost:8083/api";
 
 const debugLog = (message: string, data?: any) => {
-  const DEBUG_MODE = true;
-  if (DEBUG_MODE) {
+  const DEBUG = false;
+  if (DEBUG) {
     const timestamp = new Date().toISOString();
     const logMessage = `${DEBUG_PREFIX} [${timestamp}] ${message}`;
     if (data !== undefined) {

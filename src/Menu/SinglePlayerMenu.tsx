@@ -63,7 +63,7 @@ export default function SinglePlayerMenu({ onBack, onFreePlay }: SinglePlayerMen
         <button className={styles.modeButton} onClick={onFreePlay}>
           Free Play
         </button>
-        <button className={styles.modeButton} onClick={handleSongs}>
+        <button className={styles.modeButton} onClick={handleSongs} disabled>
           Songs
         </button>
         <button className={styles.modeButton} onClick={handleCompose} disabled>

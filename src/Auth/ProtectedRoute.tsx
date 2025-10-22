@@ -21,7 +21,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   }, [isAuthenticated, setProtectedRouteAttempt, setShowLoginNeededModal]);
 
   if (!isAuthenticated) {
-    return null; // Or a loading spinner
+    return null;
   }
 
   return <>{children}</>;

@@ -1,4 +1,4 @@
-// src/components/LoginNeededModal.tsx
+// Auth/LoginNeededModal.tsx
 import { useAtom } from 'jotai';
 import { motion, AnimatePresence } from 'framer-motion';
 import { loginNeededModalAtom, protectedRouteAttemptAtom } from '../atoms/auth';

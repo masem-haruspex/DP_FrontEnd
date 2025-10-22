@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAtom } from 'jotai';
 import { preferredKeyboardAtom } from '../atoms/auth';
 import styles from './SettingsMenu.module.scss';
+import { useAuth } from '../Auth/AuthContext';
 
 interface SettingsMenuProps {
   onBack: () => void;
@@ -10,6 +11,7 @@ interface SettingsMenuProps {
 
 export default function SettingsMenu({ onBack }: SettingsMenuProps) {
   const [preferredKeyboard, setPreferredKeyboard] = useAtom(preferredKeyboardAtom);
+  const { updatePreferredKeyboard, user } = useAuth();
   const [settings, setSettings] = useState({
     soundEnabled: true,
     visualEffects: true,
@@ -22,7 +24,6 @@ export default function SettingsMenu({ onBack }: SettingsMenuProps) {
   });
 
   useEffect(() => {
-    // Load settings from localStorage
     const savedSettings = localStorage.getItem('app_settings');
     if (savedSettings) {
       setSettings(prev => ({ ...prev, ...JSON.parse(savedSettings) }));
@@ -35,8 +36,23 @@ export default function SettingsMenu({ onBack }: SettingsMenuProps) {
     localStorage.setItem('app_settings', JSON.stringify(newSettings));
   };
 
-  const handleKeyboardChange = (keyboard: 'Casio' | 'Midiplus') => {
+  const handleKeyboardChange = async (keyboard: 'Casio' | 'Midiplus') => {
+    console.log('handleKeyboardChange called with:', keyboard);
+    console.log('User status:', user ? `Logged in as ${user.username}` : 'Guest');
+
     setPreferredKeyboard(keyboard);
+
+    if (user) {
+      try {
+        console.log('Updating database with keyboard preference:', keyboard);
+        await updatePreferredKeyboard(keyboard);
+        console.log('Database update successful');
+      } catch (error) {
+        console.error('Failed to update keyboard preference in database:', error);
+      }
+    } else {
+      console.log('Guest mode - preference saved to localStorage only');
+    }
   };
 
   return (

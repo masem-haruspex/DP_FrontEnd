@@ -8,14 +8,12 @@ const DEBUG = false;
 interface CameraProps {
   position?: [number, number, number];
   rotation?: [number, number, number];
-  lookAt?: [number, number, number];
-  transitionDuration?: number; 
+  transitionDuration?: number;
 }
 
 export default function Camera({
-  position = [0, 0, 5],
+  position = [0, 0, 1],
   rotation = [0, 0, 0],
-  lookAt = [0, 0, 0],
   transitionDuration = 2.0 * 1000 // 2 sec
 }: CameraProps) {
   const { camera } = useThree();
@@ -57,11 +55,6 @@ export default function Camera({
         );
 
         camera.rotation.copy(currentRotation);
-
-        if (lookAt && progress > 0.5) {
-          camera.lookAt(new THREE.Vector3(...lookAt));
-        }
-
         camera.updateMatrixWorld();
 
         if (progress < 1) {
@@ -93,7 +86,7 @@ export default function Camera({
         }
       };
     }
-  }, [camera, position, rotation, lookAt, transitionDuration]);
+  }, [camera, position, rotation, transitionDuration]);
 
   return null;
 }
@@ -102,12 +95,12 @@ function easeInOutCubic(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
-//// this can be used for manually orbiting and positioning the camera with your mouse and then clicking "p" on the keyboard to print the position & rotation
+//// DONT REMOVE THIS, this can be used for manually orbiting and positioning the camera with your mouse and then clicking "p" on the keyboard to print the position & rotation
 //// Camera/Camera.tsx
 //import { useThree } from "@react-three/fiber";
-//import { useEffect, useState } from "react";
+//import { useEffect, useState, useRef } from "react";
 //import * as THREE from "three";
-//import { OrbitControls } from "@react-three/drei";
+//import { PointerLockControls } from "@react-three/drei";
 //
 //interface CameraProps {
 //  rotation?: [number, number, number];
@@ -122,8 +115,9 @@ function easeInOutCubic(t: number): number {
 //  logPosition = true,
 //  initialPosition
 //}: CameraProps) {
-//  const { camera } = useThree();
+//  const { camera, gl } = useThree();
 //  const [isInitialized, setIsInitialized] = useState(false);
+//  const controlsRef = useRef<any>(null);
 //
 //  const logCameraPosition = () => {
 //    const position = camera.position;
@@ -151,14 +145,12 @@ function easeInOutCubic(t: number): number {
 //    if (camera instanceof THREE.PerspectiveCamera && !isInitialized) {
 //      if (initialPosition) {
 //        camera.position.set(...initialPosition);
-//        camera.lookAt(0, 0, 0);
 //      } else {
-//        const orbitRadius = 1;
-//        const target = new THREE.Vector3(0, 0, 0);
-//        const offset = new THREE.Vector3(0, 0, orbitRadius);
-//        offset.applyEuler(new THREE.Euler(rotation[0], rotation[1], rotation[2], 'YXZ'));
-//        camera.position.copy(target).add(offset);
-//        camera.lookAt(target);
+//        camera.position.set(-1.3, 0.2, 0.1);
+//      }
+//
+//      if (rotation) {
+//        camera.rotation.set(rotation[0], rotation[1], rotation[2]);
 //      }
 //
 //      camera.updateMatrixWorld();
@@ -178,6 +170,14 @@ function easeInOutCubic(t: number): number {
 //      if ((event.key === 'p' || event.key === 'P') && logPosition) {
 //        logCameraPosition();
 //      }
+//
+//      if ((event.key === 'l' || event.key === 'L') && controlsRef.current) {
+//        if (controlsRef.current.isLocked) {
+//          controlsRef.current.unlock();
+//        } else {
+//          controlsRef.current.lock();
+//        }
+//      }
 //    };
 //
 //    window.addEventListener('keydown', handleKeyPress);
@@ -187,12 +187,11 @@ function easeInOutCubic(t: number): number {
 //  return (
 //    <>
 //      {enableControls && (
-//        <OrbitControls
-//          enablePan={true}
-//          enableZoom={true}
-//          enableRotate={true}
+//        <PointerLockControls
+//          ref={controlsRef}
+//          domElement={gl.domElement}
 //          onChange={() => {
-//            if (logPosition) {
+//            if (logPosition && controlsRef.current?.isLocked) {
 //              requestAnimationFrame(() => {
 //                logCameraPosition();
 //              });

@@ -8,8 +8,10 @@ import LoginNeededModal from '../Auth/LoginNeededModal';
 import { useAuth } from '../Auth/AuthContext';
 import { protectedRouteAttemptAtom, loginNeededModalAtom } from '../atoms/auth';
 import {
-  setSinglePlayerModalAtom,
-  setMultiplayerModalAtom
+  setSinglePlayerMenuAtom,
+  setMultiplayerMenuAtom,
+  setSettingsMenuAtom,
+  setAboutMenuAtom
 } from '../atoms/menuState';
 import SinglePlayerMenu from './SinglePlayerMenu';
 import SettingsMenu from './SettingsMenu';
@@ -27,32 +29,38 @@ export default function MainMenu({ onSinglePlayer, onMultiplayerRoom, isInitiali
   const [currentView, setCurrentView] = useState<MenuView>('main');
   const [, setProtectedRouteAttempt] = useAtom(protectedRouteAttemptAtom);
   const [, setShowLoginNeededModal] = useAtom(loginNeededModalAtom);
-  const [, setSinglePlayerModal] = useAtom(setSinglePlayerModalAtom); 
-  const [, setMultiplayerModal] = useAtom(setMultiplayerModalAtom); 
+  const [, setSinglePlayerMenu] = useAtom(setSinglePlayerMenuAtom); 
+  const [, setMultiplayerMenu] = useAtom(setMultiplayerMenuAtom); 
+  const [, setSettingsMenu] = useAtom(setSettingsMenuAtom); 
+  const [, setAboutMenu] = useAtom(setAboutMenuAtom); 
   const { isAuthenticated, user, logout } = useAuth();
 
   const handleBackToMain = () => {
     setCurrentView('main');
-    setSinglePlayerModal(false);
-    setMultiplayerModal(false);
+    setSinglePlayerMenu(false);
+    setMultiplayerMenu(false);
+    setSettingsMenu(false);
+    setAboutMenu(false);
   };
 
   const handleSinglePlayerClick = () => {
     setCurrentView('singlePlayer');
-    setSinglePlayerModal(true); 
+    setSinglePlayerMenu(true); 
   };
 
   const handleMultiplayerClick = () => {
     setCurrentView('multiplayer');
-    setMultiplayerModal(true); 
+    setMultiplayerMenu(true); 
   };
 
   const handleSettingsClick = () => {
     setCurrentView('settings');
+    setSettingsMenu(true);
   };
 
   const handleAboutClick = () => {
     setCurrentView('about');
+    setAboutMenu(true);
   };
 
   const handleAuthClick = () => {
@@ -65,12 +73,12 @@ export default function MainMenu({ onSinglePlayer, onMultiplayerRoom, isInitiali
   };
 
   const handleFreePlay = () => {
-    setSinglePlayerModal(false); 
+    setSinglePlayerMenu(false); 
     onSinglePlayer();
   };
 
   const handleMultiplayerRoomCreated = (roomCode: string) => {
-    setMultiplayerModal(false); 
+    setMultiplayerMenu(false); 
     setCurrentView('main');
     onMultiplayerRoom(roomCode);
   };

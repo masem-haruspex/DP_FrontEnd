@@ -10,7 +10,7 @@ const DEBUG = false;
 interface AnimatedObjectProps {
   url: string;
   position?: [number, number, number];
-  scale?: number;
+  scale?: [number, number, number];
   rotation: [number, number, number];
   shouldAnimate?: boolean;
   speed?: number;
@@ -25,7 +25,7 @@ export default function AnimatedObject({
   url,
   position = [0, 0, 0],
   rotation = [0, 0, 0],
-  scale = 1,
+  scale = [1, 1, 1],
   shouldAnimate = true,
   speed = 1,
   introAnimationName,

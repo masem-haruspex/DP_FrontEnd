@@ -18,6 +18,7 @@ interface AuthContextType {
   register: (data: { username: string; email: string; password: string }) => Promise<void>;
   logout: () => void;
   setPreferredKeyboard: (keyboard: 'Casio' | 'Midiplus') => void;
+  updatePreferredKeyboard: (keyboard: 'Casio' | 'Midiplus') => Promise<void>;
   setProtectedRouteAttempt: (route: string | null) => void;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -146,12 +147,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
   });
 
+  const updateKeyboardMutation = useMutation({
+    mutationFn: async (keyboard: 'Casio' | 'Midiplus') => {
+      const userId = auth.user?.id;
+
+      const response = await axiosInstance.put(`http://localhost:8080/api/auth/${userId}`, { preferredKeyboard: keyboard }, { withCredentials: true });
+      return response.data;
+    },
+    onSuccess: (data, keyboard) => {
+      setPreferredKeyboard(keyboard);
+
+      if (auth.user) {
+        const updatedUser = {
+          ...auth.user,
+          preferredKeyboard: keyboard,
+          username: data.username || auth.user.username
+        };
+        setAuth(prev => ({ ...prev, user: updatedUser }));
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+
+      setToasts(prev => [...prev, {
+        id: Date.now().toString(),
+        message: 'Keyboard preference updated!',
+        type: 'success',
+        duration: 3000,
+      }]);
+    },
+    onError: (error: any) => {
+      setToasts(prev => [...prev, {
+        id: Date.now().toString(),
+        message: error.response?.data?.message || 'Failed to update keyboard preference',
+        type: 'error',
+        duration: 5000,
+      }]);
+    },
+  });
+
   const login = async (credentials: { identifier: string; password: string }) => {
     await loginMutation.mutateAsync(credentials);
   };
 
   const register = async (data: { username: string; email: string; password: string }) => {
     await registerMutation.mutateAsync(data);
+  };
+
+  const updatePreferredKeyboard = async (keyboard: 'Casio' | 'Midiplus') => {
+    if (!auth.user) {
+      throw new Error('User must be logged in to update keyboard preference');
+    }
+    await updateKeyboardMutation.mutateAsync(keyboard);
   };
 
   const logout = () => {
@@ -181,6 +226,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     register,
     logout,
     setPreferredKeyboard,
+    updatePreferredKeyboard,
     setProtectedRouteAttempt,
     isAuthenticated: auth.isAuthenticated,
     isLoading: auth.isLoading,

@@ -22,9 +22,28 @@ export interface AuthState {
   isAuthenticated: boolean;
 }
 
-export const authAtom = atom<AuthState>({ user: null, token: null, isLoading: true, isAuthenticated: false });
+export const authAtom = atom<AuthState>({
+  user: null,
+  token: null,
+  isLoading: true,
+  isAuthenticated: false
+});
+
 export const guestIdAtom = atom<string>(getOrCreateGuestId());
-export const preferredKeyboardAtom = atomWithStorage<'Casio' | 'Midiplus'>('preferred_keyboard', 'Casio');
 export const rememberMeAtom = atomWithStorage('remember_me', false);
 export const protectedRouteAttemptAtom = atom<string | null>(null);
 export const loginNeededModalAtom = atom<boolean>(false);
+
+export const preferredKeyboardAtom = atom(
+  (get) => {
+    const auth = get(authAtom);
+    const localStorageKeyboard = localStorage.getItem('preferred_keyboard');
+
+    if (auth.user && auth.isAuthenticated)
+      return auth.user.preferredKeyboard;
+    return (localStorageKeyboard as 'Casio' | 'Midiplus') || 'Casio';
+  },
+  (_get, _set, update: 'Casio' | 'Midiplus') => {
+    localStorage.setItem('preferred_keyboard', update);
+  }
+);

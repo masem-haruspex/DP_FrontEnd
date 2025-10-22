@@ -38,6 +38,7 @@ export default function App() {
   const [webSocketService, setWebSocketService] = useState<WebSocketService | null>(null);
   const queryClient = useQueryClient();
   const rememberMe = false;
+  const [animationsComplete, setAnimationsComplete] = useState(false);
 
   const isAudioReady = useAtomValue(isAudioReadyAtom);
   const initializeAudio = useSetAtom(initializeAudioAtom);
@@ -86,7 +87,6 @@ export default function App() {
         const participants = await RoomService.getRoomParticipants(roomCode);
 
         const playerObjects = participants.map((participant, index) => {
-          console.log('room participant:', JSON.stringify(participant, null, 2));
           const totalPlayers = participants.length;
           const angle = (index / Math.max(totalPlayers, 2)) * Math.PI * 2;
           const radius = 20;
@@ -241,7 +241,7 @@ export default function App() {
         ];
 
         const newPlayer = {
-          id: playerId, 
+          id: playerId,
           username: playerData.username || `User ${playerId.slice(0, 8)}`,
           position,
           preferredKeyboard: playerData.preferredKeyboard || 'Casio'
@@ -259,10 +259,8 @@ export default function App() {
     return;
   }
 
-  console.log(`[App] Removing player: ${playerId}`);
   setMultiplayerPlayers(prev => {
     const newPlayers = prev.filter(p => p.id !== playerId);
-    console.log(`[App] Players after removal: ${newPlayers.length}`);
     return newPlayers;
   });
 };
@@ -284,9 +282,9 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (modelsLoaded && isAudioReady && !showMainMenu && !showSinglePlayer && !currentMultiplayerRoom)
+    if (modelsLoaded && isAudioReady && animationsComplete && !showMainMenu && !showSinglePlayer && !currentMultiplayerRoom)
       handleLoadingComplete();
-  }, [modelsLoaded, isAudioReady, showMainMenu, showSinglePlayer, currentMultiplayerRoom, handleLoadingComplete]);
+  }, [modelsLoaded, isAudioReady, showMainMenu, showSinglePlayer, currentMultiplayerRoom, handleLoadingComplete, animationsComplete]);
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
@@ -324,11 +322,13 @@ export default function App() {
           className={styles.backgroundImage}
           style={{
             backgroundImage: 'url("/bg-nebula.PNG")',
-              backgroundPosition: menuState.showSinglePlayerModal || menuState.showMultiplayerModal ? 'right' : 'left'
+              backgroundPosition: menuState.showSinglePlayerMenu || menuState.showMultiplayerMenu || menuState.showSettingsMenu ? 'right' : 'left'
           }}
         />
 
         <Canvas
+          camera={{ position: [0, 0, 1] }}
+
           frameloop="demand"
           dpr={1}
           gl={{
@@ -382,7 +382,7 @@ export default function App() {
                 playerPosition = [0, -6, -10];
             } else {
                 playerPosition = [25, -6, -11];
-              rotationY = degreesToRad(32); 
+              rotationY = degreesToRad(32);
             }
             }
             else if (totalPlayers === 3) {
@@ -418,13 +418,13 @@ export default function App() {
             })}
 
             {!showSinglePlayer && !currentMultiplayerRoom &&
-              <group position={[-1, 0.8, -3]} rotation={[degreesToRad(28), degreesToRad(0), degreesToRad(0)]}>
+              <group position={[-1, 0.0, -3]} rotation={[degreesToRad(0), degreesToRad(10), degreesToRad(0)]}>
                 {(menuState.selectedCat === 'both' || menuState.selectedCat === 'black') && (
                   <AnimatedObject
                     url="/models/loading/cat_black.glb"
-                    position={[3, 1, 1]}
+                  position={[-0.6, -0.6, 2]}
                     rotation={[0, 0, 0]}
-                    scale={1.2}
+                    scale={[-1.2, 1.2, 1.2]}
                     introAnimationName={"black_cat_duo_piano_loading"}
                     loopAnimationName="black_playing"
                     shouldLoop={true}
@@ -435,9 +435,9 @@ export default function App() {
                 {(menuState.selectedCat === 'both' || menuState.selectedCat === 'tuxedo') && (
                   <AnimatedObject
                     url="/models/loading/cat_tuxedo.glb"
-                    position={[3, 1, 1]}
+                  position={[-0.6, -0.6, 2]}
                     rotation={[0, 0, 0]}
-                    scale={1.2}
+                    scale={[-1.2, 1.2, 1.2]}
                     introAnimationName={"tuxedo_cat_duo_piano_loading"}
                     loopAnimationName="tuxedo_playing"
                     shouldLoop={true}
@@ -447,22 +447,65 @@ export default function App() {
 
                 <AnimatedObject
                   url="/models/loading/piano.glb"
-                  position={[3, 1, 1]}
-                  rotation={[degreesToRad(0), 0, 0]}
-                  scale={1.0}
+                  position={[-0.6, -0.6, 2]}
+                  rotation={[0, 0, 0]}
+                  scale={[1.2, 1.2, 1.2]}
                   shouldAnimate={false}
                   startAnimation={startLoadingAnimations}
                 />
 
-                <AnimatedObject
-                  url="/models/loading/title.glb"
-                  position={[2, 1.0, 1]}
-                  rotation={[0, 0, 0]}
-                  scale={1}
-                  shouldAnimate={true}
-                  introAnimationName="TextAction"
-                  startAnimation={startLoadingAnimations}
-                />
+                <group rotation={[0, degreesToRad(-6), 0]}>
+                  <AnimatedObject
+                    url="/models/loading/title.glb"
+                    position={[0, -0.6, 2]}
+                    rotation={[0, 0, 0]}
+                    scale={[1.2, 1.2, 1.2]}
+                    shouldAnimate={true}
+                    introAnimationName="title-DP"
+                    startAnimation={startLoadingAnimations}
+                    onIntroComplete={() => setAnimationsComplete(true)}
+                  />
+                  <AnimatedObject
+                    url="/models/loading/title1.glb"
+                    position={[0, -0.6, 2]}
+                    rotation={[0, 0, 0]}
+                    scale={[1.2, 1.2, 1.2]}
+                    shouldAnimate={true}
+                    introAnimationName="title-DP.001"
+                    startAnimation={startLoadingAnimations}
+                    onIntroComplete={() => setAnimationsComplete(true)}
+                  />
+                  <AnimatedObject
+                    url="/models/loading/title2.glb"
+                    position={[0, -0.6, 2]}
+                    rotation={[0, 0, 0]}
+                    scale={[1.2, 1.2, 1.2]}
+                    shouldAnimate={true}
+                    introAnimationName="title-DP.002"
+                    startAnimation={startLoadingAnimations}
+                    onIntroComplete={() => setAnimationsComplete(true)}
+                  />
+                  <AnimatedObject
+                    url="/models/loading/title3.glb"
+                    position={[0, -0.6, 2]}
+                    rotation={[0, 0, 0]}
+                    scale={[1.2, 1.2, 1.2]}
+                    shouldAnimate={true}
+                    introAnimationName="title-DP.003"
+                    startAnimation={startLoadingAnimations}
+                    onIntroComplete={() => setAnimationsComplete(true)}
+                  />
+                  <AnimatedObject
+                    url="/models/loading/title4.glb"
+                    position={[0, -0.6, 2]}
+                    rotation={[0, 0, 0]}
+                    scale={[1.2, 1.2, 1.2]}
+                    shouldAnimate={true}
+                    introAnimationName="title-DP.004"
+                    startAnimation={startLoadingAnimations}
+                    onIntroComplete={() => setAnimationsComplete(true)}
+                  />
+                </group>
               </group>
             }
           </BloomScene>
@@ -510,10 +553,10 @@ function BackgroundPan() {
   useEffect(() => {
     const background = scene.children.find(child => child.renderOrder === -1);
     if (background) {
-      const targetX = (menuState.showSinglePlayerModal || menuState.showMultiplayerModal) ? -1 : 0;
+      const targetX = (menuState.showSinglePlayerMenu || menuState.showMultiplayerMenu || menuState.showSettingsMenu) ? -1 : 0;
       background.position.x = targetX;
     }
-  }, [menuState.showSinglePlayerModal, menuState.showMultiplayerModal, scene]);
+  }, [menuState.showSinglePlayerMenu, menuState.showMultiplayerMenu, menuState.showSettingsMenu, scene]);
 
   return null;
 }

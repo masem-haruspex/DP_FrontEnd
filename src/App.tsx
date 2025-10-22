@@ -18,11 +18,8 @@ import Multiplayer from './Multiplayer/Multiplayer';
 import { menuStateAtom, cameraRotationAtom, cameraPositionAtom, markIntroAnimationsPlayedAtom } from './atoms/menuState';
 import { initializeAudioAtom, isAudioReadyAtom } from './atoms/audio';
 import { useAtomValue, useSetAtom } from 'jotai';
-import { toastsAtom } from './atoms/toast';
-import { authAtom, preferredKeyboardAtom } from './atoms/auth';
-import axiosInstance from './lib/axiosInstance';
-import { setCookie } from './lib/cookies';
-import { useQueryClient } from '@tanstack/react-query';
+
+
 import { singlePlayerAudioSettingsAtom, multiplayerAudioSettingsAtom } from './atoms/audio';
 import { RoomService } from './Multiplayer/RoomService';
 
@@ -36,8 +33,6 @@ export default function App() {
   const [startLoadingAnimations, setStartLoadingAnimations] = useState(false);
   const [currentMultiplayerRoom, setCurrentMultiplayerRoom] = useState<string | null>(null);
   const [webSocketService, setWebSocketService] = useState<WebSocketService | null>(null);
-  const queryClient = useQueryClient();
-  const rememberMe = false;
   const [animationsComplete, setAnimationsComplete] = useState(false);
 
   const isAudioReady = useAtomValue(isAudioReadyAtom);
@@ -48,9 +43,6 @@ export default function App() {
   const [cameraRotation] = useAtom(cameraRotationAtom);
   const [cameraPosition] = useAtom(cameraPositionAtom);
   const [, markIntroAnimationsPlayed] = useAtom(markIntroAnimationsPlayedAtom);
-  const setAuth = useSetAtom(authAtom);
-  const setPreferredKeyboard = useSetAtom(preferredKeyboardAtom);
-  const setToasts = useSetAtom(toastsAtom);
   const [singlePlayerSettings, setSinglePlayerSettings] = useAtom(singlePlayerAudioSettingsAtom);
   const [multiplayerSettings, setMultiplayerSettings] = useAtom(multiplayerAudioSettingsAtom);
 
@@ -138,71 +130,12 @@ export default function App() {
   }, [menuState.introAnimationsPlayed, markIntroAnimationsPlayed]);
 
   useEffect(() => {
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const token = hashParams.get("token");
-    const userData = hashParams.get("user");
-    const error = hashParams.get("error");
-
-    const handleSuccess = async (token: string, user: any) => {
-      const expiresInDays = rememberMe ? 365 : 0;
-      setCookie("token", token, expiresInDays);
-
-      if (user) {
-        localStorage.setItem("user", JSON.stringify(user));
-      }
-
-      setAuth({
-        user,
-        token,
-        isLoading: false,
-        isAuthenticated: true,
-      });
-
-      axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-      queryClient.invalidateQueries({ queryKey: ["user"] });
-
-      if (user?.preferredKeyboard) {
-        setPreferredKeyboard(user.preferredKeyboard);
-      }
-
-      setToasts(prev => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          message: "OAuth login successful!",
-          type: "success",
-          duration: 3000,
-        },
-      ]);
-
-      window.history.replaceState({}, document.title, window.location.pathname);
+    const user = localStorage.getItem('user');
+    if(user) {
+      console.log('User found in localStorage, skipping splash screen.');
       handleStraightToMenu();
-    };
-
-    const handleError = (msg: string) => {
-      console.error("OAuth2 login failed:", msg);
-      setToasts(prev => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          message: msg || "OAuth2 login failed",
-          type: "error",
-          duration: 5000,
-        },
-      ]);
-      handleStraightToMenu();
-    };
-
-    if (token) {
-      try {
-        const user = userData ? JSON.parse(decodeURIComponent(userData)) : null;
-        handleSuccess(token, user);
-      } catch (err) {
-        handleError("Failed to process user data");
-      }
-    } else if (error) {
-      handleError(error);
     }
+
   }, []);
 
   useEffect(() => {

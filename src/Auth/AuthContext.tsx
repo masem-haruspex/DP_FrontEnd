@@ -12,14 +12,15 @@ import {
 } from '../atoms/auth';
 import { toastsAtom } from '../atoms/toast';
 import { setCookie, deleteCookie, getCookie } from '../lib/cookies';
+import { generateCodeVerifier, generateCodeChallenge } from '../lib/pkce';
 
 interface AuthContextType {
-  login: (credentials: { identifier: string; password: string }) => Promise<void>;
   register: (data: { username: string; email: string; password: string }) => Promise<void>;
   logout: () => void;
   setPreferredKeyboard: (keyboard: 'Casio' | 'Midiplus') => void;
   updatePreferredKeyboard: (keyboard: 'Casio' | 'Midiplus') => Promise<void>;
   setProtectedRouteAttempt: (route: string | null) => void;
+  loginWithOAuth2: () => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
   user: User | null;
@@ -28,6 +29,10 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const DEBUG = true;
 
+function generateRandomState() {
+  return Math.random().toString(36).substring(2, 15);
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [auth, setAuth] = useAtom(authAtom);
   const [rememberMe] = useAtom(rememberMeAtom);
@@ -35,6 +40,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const setProtectedRouteAttempt = useSetAtom(protectedRouteAttemptAtom);
   const setToasts = useSetAtom(toastsAtom);
   const queryClient = useQueryClient();
+
+  const baseURL = import.meta.env.VITE_BASE_URL;
+  const authApiUrl = import.meta.env.VITE_AUTH_API_BASE_URL || 'http://localhost:8080';
 
   useEffect(() => {
     const token = getCookie('token');
@@ -60,60 +68,152 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [setAuth]);
 
-  const loginMutation = useMutation({
-    mutationFn: async (credentials: { identifier: string; password: string }) => {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      const payload = emailRegex.test(credentials.identifier)
-        ? { email: credentials.identifier, password: credentials.password }
-        : { username: credentials.identifier, password: credentials.password };
+  // Handle OAuth2 callback
+  useEffect(() => {
+    const handleOAuth2Callback = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
+      const error = urlParams.get('error');
+      const state = urlParams.get('state');
 
-      const response = await axiosInstance.post('http://localhost:8080/api/auth/login', payload);
-      return response.data;
-    },
-    onSuccess: (data) => {
-      if(DEBUG) console.log('Login successful - User data:', data.user);
-      if(DEBUG) console.log('Token received:', data.token);
-      const expiresInDays = rememberMe ? 365 : 0; // 30 day token if "remember me", 0 means logged out as soon as you exit the tab
-      setCookie('token', data.token, expiresInDays);
-
-      localStorage.setItem('user', JSON.stringify(data.user));
-
-      setAuth({
-        user: data.user,
-        token: data.token,
-        isLoading: false,
-        isAuthenticated: true,
-      });
-
-      if(DEBUG) console.log('Auth state after login:', { user: data.user, isAuthenticated: true });
-
-      axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
-      queryClient.invalidateQueries({ queryKey: ['user'] });
-
-      if (data.user.preferredKeyboard) {
-        setPreferredKeyboard(data.user.preferredKeyboard);
+      if (error) {
+        console.error('OAuth2 error:', error);
+        setToasts(prev => [...prev, {
+          id: Date.now().toString(),
+          message: `OAuth2 login failed: ${error}`,
+          type: 'error',
+          duration: 5000,
+        }]);
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return;
       }
 
-      setToasts(prev => [...prev, {
-        id: Date.now().toString(),
-        message: 'Login successful!',
-        type: 'success',
-        duration: 3000,
-      }]);
-    },
-    onError: (error: any) => {
-      setToasts(prev => [...prev, {
-        id: Date.now().toString(),
-        message: error.response?.data?.message || 'Login failed',
-        type: 'error',
-        duration: 5000,
-      }]);
-    },
-  });
+      if (code) {
+        const codeVerifier = sessionStorage.getItem('code_verifier');
+        const savedState = sessionStorage.getItem('oauth_state');
+
+        if (!codeVerifier) {
+          console.error('No code verifier found');
+          setToasts(prev => [...prev, {
+            id: Date.now().toString(),
+            message: 'OAuth2 session expired. Please try again.',
+            type: 'error',
+            duration: 5000,
+          }]);
+          window.history.replaceState({}, document.title, window.location.pathname);
+          return;
+        }
+
+        if (state !== savedState) {
+          console.error('State mismatch');
+          setToasts(prev => [...prev, {
+            id: Date.now().toString(),
+            message: 'OAuth2 security validation failed. Please try again.',
+            type: 'error',
+            duration: 5000,
+          }]);
+          window.history.replaceState({}, document.title, window.location.pathname);
+          return;
+        }
+
+        try {
+          const response = await fetch(`${authApiUrl}/oauth2/token`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+              grant_type: 'authorization_code',
+              code: code,
+              redirect_uri: `${baseURL}`,
+              client_id: 'internal-client',
+              code_verifier: codeVerifier,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error_description || errorData.error);
+          }
+
+          const tokenData = await response.json();
+          
+          if (DEBUG) console.log('OAuth2 token received:', tokenData);
+
+          // Store tokens
+          const expiresInDays = rememberMe ? 365 : 0;
+          setCookie('token', tokenData.access_token, expiresInDays);
+          
+          if (tokenData.refresh_token) {
+            sessionStorage.setItem('refresh_token', tokenData.refresh_token);
+          }
+
+          let userData = tokenData.user;
+          if (!userData) {
+            // extract info directly from access_token JWT
+            const tokenParts = tokenData.access_token.split('.');
+            if (tokenParts.length === 3) {
+              const payload = JSON.parse(atob(tokenParts[1]));
+              userData = {
+                id: payload.user_id,
+                username: payload.sub,
+                email: payload.email,
+                preferredKeyboard: payload.preferred_keyboard,
+              };
+            }
+          }
+
+          localStorage.setItem('user', JSON.stringify(userData));
+
+          setAuth({
+            user: userData,
+            token: tokenData.access_token,
+            isLoading: false,
+            isAuthenticated: true,
+          });
+
+          axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${tokenData.access_token}`;
+          queryClient.invalidateQueries({ queryKey: ['user'] });
+
+          if (userData?.preferredKeyboard) {
+            setPreferredKeyboard(userData.preferredKeyboard);
+          }
+
+          setToasts(prev => [...prev, {
+            id: Date.now().toString(),
+            message: 'OAuth2 login successful!',
+            type: 'success',
+            duration: 3000,
+          }]);
+
+          // Clean up
+          sessionStorage.removeItem('code_verifier');
+          sessionStorage.removeItem('oauth_state');
+          window.history.replaceState({}, document.title, window.location.pathname);
+
+        } catch (error: any) {
+          console.error('Token exchange failed:', error);
+          setToasts(prev => [...prev, {
+            id: Date.now().toString(),
+            message: error.message || 'Failed to complete OAuth2 login',
+            type: 'error',
+            duration: 5000,
+          }]);
+          sessionStorage.removeItem('code_verifier');
+          sessionStorage.removeItem('oauth_state');
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      }
+    };
+
+    handleOAuth2Callback();
+  }, [setAuth, setToasts, setPreferredKeyboard, queryClient, rememberMe, authApiUrl, baseURL]);
+
+
 
   const registerMutation = useMutation({
     mutationFn: async (data: { username: string; email: string; password: string }) => {
-      const response = await axiosInstance.post('http://localhost:8080/api/auth/register', data);
+      const response = await axiosInstance.post(`${authApiUrl}/api/auth/register`, data);
       return response.data;
     },
     onSuccess: (data) => {
@@ -150,8 +250,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateKeyboardMutation = useMutation({
     mutationFn: async (keyboard: 'Casio' | 'Midiplus') => {
       const userId = auth.user?.id;
-
-      const response = await axiosInstance.put(`http://localhost:8080/api/auth/${userId}`, { preferredKeyboard: keyboard }, { withCredentials: true });
+      const response = await axiosInstance.put(
+        `${authApiUrl}/api/auth/${userId}`, 
+        { preferredKeyboard: keyboard }, 
+        { withCredentials: true }
+      );
       return response.data;
     },
     onSuccess: (data, keyboard) => {
@@ -184,10 +287,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
   });
 
-  const login = async (credentials: { identifier: string; password: string }) => {
-    await loginMutation.mutateAsync(credentials);
-  };
-
   const register = async (data: { username: string; email: string; password: string }) => {
     await registerMutation.mutateAsync(data);
   };
@@ -199,9 +298,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await updateKeyboardMutation.mutateAsync(keyboard);
   };
 
+  const loginWithOAuth2 = async () => {
+    try {
+      const codeVerifier = generateCodeVerifier();
+      const codeChallenge = await generateCodeChallenge(codeVerifier);
+      const state = generateRandomState();
+
+      sessionStorage.setItem('code_verifier', codeVerifier);
+      sessionStorage.setItem('oauth_state', state);
+
+      const params = new URLSearchParams({
+        client_id: 'internal-client',
+        redirect_uri: `${baseURL}`,
+        response_type: 'code',
+        scope: 'openid profile email read write',
+        code_challenge: codeChallenge,
+        code_challenge_method: 'S256',
+        state: state,
+      });
+
+      window.location.href = `${authApiUrl}/oauth2/authorize?${params}`;
+    } catch (error) {
+      console.error('Failed to initiate OAuth2 login:', error);
+      setToasts(prev => [...prev, {
+        id: Date.now().toString(),
+        message: 'Failed to initiate OAuth2 login',
+        type: 'error',
+        duration: 5000,
+      }]);
+    }
+  };
+
   const logout = () => {
     deleteCookie('token');
     localStorage.removeItem('user');
+    sessionStorage.removeItem('refresh_token');
+    sessionStorage.removeItem('code_verifier');
+    sessionStorage.removeItem('oauth_state');
 
     setAuth({
       user: null,
@@ -222,12 +355,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const value: AuthContextType = {
-    login,
     register,
     logout,
     setPreferredKeyboard,
     updatePreferredKeyboard,
     setProtectedRouteAttempt,
+    loginWithOAuth2,
     isAuthenticated: auth.isAuthenticated,
     isLoading: auth.isLoading,
     user: auth.user,

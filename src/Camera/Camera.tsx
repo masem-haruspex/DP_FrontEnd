@@ -146,7 +146,7 @@ function easeInOutCubic(t: number): number {
 //      if (initialPosition) {
 //        camera.position.set(...initialPosition);
 //      } else {
-//        camera.position.set(-1.3, 0.2, 0.1);
+//        camera.position.set(-0.755, -0.100, -1.690);
 //      }
 //
 //      if (rotation) {

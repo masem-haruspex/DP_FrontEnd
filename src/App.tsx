@@ -18,8 +18,6 @@ import Multiplayer from './Multiplayer/Multiplayer';
 import { menuStateAtom, cameraRotationAtom, cameraPositionAtom, markIntroAnimationsPlayedAtom } from './atoms/menuState';
 import { initializeAudioAtom, isAudioReadyAtom } from './atoms/audio';
 import { useAtomValue, useSetAtom } from 'jotai';
-
-
 import { singlePlayerAudioSettingsAtom, multiplayerAudioSettingsAtom } from './atoms/audio';
 import { RoomService } from './Multiplayer/RoomService';
 
@@ -118,25 +116,11 @@ export default function App() {
     setShowMainMenu(true);
   };
 
-  const handleStraightToMenu = () => {
-    setHasUserInteracted(true);
-    setShowMainMenu(true);
-  }
-
   useEffect(() => {
     if (!menuState.introAnimationsPlayed) {
       markIntroAnimationsPlayed();
     }
   }, [menuState.introAnimationsPlayed, markIntroAnimationsPlayed]);
-
-  useEffect(() => {
-    const user = localStorage.getItem('user');
-    if(user) {
-      console.log('User found in localStorage, skipping splash screen.');
-      handleStraightToMenu();
-    }
-
-  }, []);
 
   useEffect(() => {
     return () => {
@@ -355,7 +339,7 @@ export default function App() {
                 {(menuState.selectedCat === 'both' || menuState.selectedCat === 'black') && (
                   <AnimatedObject
                     url="/models/loading/cat_black.glb"
-                  position={[-0.6, -0.6, 2]}
+                  position={[-0.6, -0.58, 2]}
                     rotation={[0, 0, 0]}
                     scale={[-1.2, 1.2, 1.2]}
                     introAnimationName={"black_cat_duo_piano_loading"}
@@ -368,7 +352,7 @@ export default function App() {
                 {(menuState.selectedCat === 'both' || menuState.selectedCat === 'tuxedo') && (
                   <AnimatedObject
                     url="/models/loading/cat_tuxedo.glb"
-                  position={[-0.6, -0.6, 2]}
+                  position={[-0.6, -0.58, 2]}
                     rotation={[0, 0, 0]}
                     scale={[-1.2, 1.2, 1.2]}
                     introAnimationName={"tuxedo_cat_duo_piano_loading"}
@@ -377,6 +361,28 @@ export default function App() {
                     startAnimation={startLoadingAnimations}
                   />
                 )}
+
+                  <AnimatedObject
+                    url="/models/loading/mouse_l.glb"
+                  position={[-0.6, -0.58, 1.87]}
+                    rotation={[0, 0, 0]}
+                    scale={[-1.0, 1.0, 1.0]}
+                    introAnimationName={"MouseLIntro"}
+                    loopAnimationName="MouseL"
+                    shouldLoop={true}
+                    startAnimation={startLoadingAnimations}
+                  />
+
+                  <AnimatedObject
+                    url="/models/loading/mouse_r.glb"
+                  position={[-0.6, -0.58, 1.87]}
+                    rotation={[0, 0, 0]}
+                    scale={[-1.0, 1.0, 1.0]}
+                    introAnimationName={"MouseRIntro"}
+                    loopAnimationName="MouseR"
+                    shouldLoop={true}
+                    startAnimation={startLoadingAnimations}
+                  />
 
                 <AnimatedObject
                   url="/models/loading/piano.glb"

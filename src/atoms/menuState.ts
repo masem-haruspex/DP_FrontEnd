@@ -5,8 +5,8 @@ import { degreesToRad } from '../lib/pianoHelpers';
 export const CAMERA_POSITION_DEFAULT = [0, 0, 1] as [number, number, number];
 export const CAMERA_ROTATION_DEFAULT = [0, 0, 0] as [number, number, number];
 
-export const CAMERA_POSITION_PLAY = [-0.855, -0.190, -2.006] as [number, number, number];
-export const CAMERA_ROTATION_PLAY = [degreesToRad(-169.2), degreesToRad(38.6), degreesToRad(171.7)] as [number, number, number];
+export const CAMERA_POSITION_PLAY = [-0.755, -0.100, -1.690] as [number, number, number];
+export const CAMERA_ROTATION_PLAY = [degreesToRad(-149.86), degreesToRad(32.20), degreesToRad(162.82)] as [number, number, number];
 
 export const CAMERA_POSITION_SETTINGS = [-0.855, -0.140, -2.006] as [number, number, number];
 export const CAMERA_ROTATION_SETTINGS = [degreesToRad(-108.68), degreesToRad(39.59), degreesToRad(117.92)] as [number, number, number];

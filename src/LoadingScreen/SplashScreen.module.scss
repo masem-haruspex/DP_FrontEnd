@@ -1,0 +1,32 @@
+// LoadingScreen/SplashScreen.module.scss
+@use '../styles/vars' as *;
+@use '../styles/mixins' as *;
+
+.splashScreen {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: transparent;
+  cursor: pointer;
+}
+
+.splashContent {
+  @include magical-card();
+
+  h1 {
+    @include magical-title();
+    margin: 0;
+  }
+
+  h2{
+    @include magical-h2();
+  }
+
+  p {
+    @include magical-text();
+    font-size: 1.2rem;
+  }
+}
+

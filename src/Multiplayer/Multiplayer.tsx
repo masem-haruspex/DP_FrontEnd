@@ -22,6 +22,18 @@ export default function Multiplayer({ roomCode, onLeave, webSocketService, onSet
   const [multiplayerSettings, setMultiplayerSettings] = useAtom(multiplayerAudioSettingsAtom);
   const [, applyAudioSettings] = useAtom(applyAudioSettingsAtom);
   const [isChatFocused, setIsChatFocused] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'reconnecting' | 'disconnected'>('connecting');
+
+  const refreshRoomData = async () => {
+    try {
+      const room = await RoomService.getRoom(roomCode);
+      const participants = await RoomService.getRoomParticipants(roomCode);
+      setRoomInfo(room);
+      setParticipantCount(participants.length);
+    } catch (error) {
+      console.error('Failed to refresh room data:', error);
+    }
+  };
 
   useEffect(() => {
     const loadRoomData = async () => {
@@ -34,20 +46,54 @@ export default function Multiplayer({ roomCode, onLeave, webSocketService, onSet
         console.error('Failed to load room data:', error);
       }
     };
+
     loadRoomData();
+
+    const intervalId = setInterval(() => {
+      refreshRoomData();
+    }, 30000);
+
+    return () => clearInterval(intervalId);
   }, [roomCode]);
 
-    useEffect(() => {
+  useEffect(() => {
+    if (!webSocketService) return;
+
+    const handleConnectionEvent = (data: any) => {
+      switch (data.type) {
+        case 'CONNECTION_ESTABLISHED':
+        case 'RECONNECTED':
+          setConnectionStatus('connected');
+          refreshRoomData();
+          break;
+        case 'CONNECTION_LOST':
+        case 'RECONNECTING':
+          setConnectionStatus('reconnecting');
+          break;
+        case 'CONNECTION_PERMANENTLY_LOST':
+        case 'DISCONNECTED':
+          setConnectionStatus('disconnected');
+          break;
+        default:
+          break;
+      }
+    };
+
+    webSocketService.on('CONNECTION_EVENT', handleConnectionEvent);
+
+    return () => {
+      webSocketService.off('CONNECTION_EVENT', handleConnectionEvent);
+    };
+  }, [webSocketService]);
+
+  useEffect(() => {
     if (!webSocketService) return;
 
     const handlePlayerJoined = () => {
-      setParticipantCount(prev => prev + 1);
-      // Also refresh room data to get updated info
       refreshRoomData();
     };
 
     const handlePlayerLeft = () => {
-      setParticipantCount(prev => Math.max(1, prev - 1)); // Ensure at least 1
       refreshRoomData();
     };
 
@@ -59,17 +105,6 @@ export default function Multiplayer({ roomCode, onLeave, webSocketService, onSet
       webSocketService.off('PLAYER_LEFT', handlePlayerLeft);
     };
   }, [webSocketService, roomCode]);
-
-  const refreshRoomData = async () => {
-    try {
-      const room = await RoomService.getRoom(roomCode);
-      const participants = await RoomService.getRoomParticipants(roomCode);
-      setRoomInfo(room);
-      setParticipantCount(participants.length);
-    } catch (error) {
-      console.error('Failed to refresh room data:', error);
-    }
-  };
 
   const handleLeaveRoom = async () => {
     if (user) {
@@ -99,7 +134,6 @@ export default function Multiplayer({ roomCode, onLeave, webSocketService, onSet
       />
 
       <div className={styles.roomContent}>
-
         <div className={styles.roomHeader}>
           <button onClick={handleLeaveRoom} className={styles.leaveButton}>
             Leave
@@ -108,16 +142,16 @@ export default function Multiplayer({ roomCode, onLeave, webSocketService, onSet
             <h2>Name: {roomInfo?.name || "Untitled"}</h2>
             <h2>Code: {roomCode}</h2>
             <h2>Players: {participantCount}/{roomInfo?.maxParticipants}</h2>
+            <h2>Status: {connectionStatus}</h2>
           </div>
         </div>
 
-        <ChatBox 
-          roomCode={roomCode} 
-          webSocketService={webSocketService} 
-          onFocusChange={setIsChatFocused} 
-          isFocused={isChatFocused} 
+        <ChatBox
+          roomCode={roomCode}
+          webSocketService={webSocketService}
+          onFocusChange={setIsChatFocused}
+          isFocused={isChatFocused}
           setIsFocused={setIsChatFocused} />
-
       </div>
     </div>
   );

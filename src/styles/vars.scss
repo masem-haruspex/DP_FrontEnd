@@ -90,6 +90,13 @@ $easing-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 @font-face {
+  font-family: 'Prompt';
+  src: url('/fonts/Prompt.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
   font-family: 'Avendita';
   src: url('/fonts/Avendita.ttf') format('truetype');
   font-weight: normal;

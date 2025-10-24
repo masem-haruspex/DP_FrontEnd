@@ -8,6 +8,7 @@ import { CreateRoomSchema, type CreateRoomData, type Room } from '../Multiplayer
 import styles from './MultiplayerMenu.module.scss';
 import * as z from 'zod';
 import { RoomService } from '../Multiplayer/RoomService';
+import { toastsAtom } from '../atoms/toast';
 
 type ModalView = 'main' | 'host' | 'room-created';
 
@@ -17,6 +18,7 @@ interface MultiplayerMenuProps {
 }
 
 export default function MultiplayerMenu({ onBack, onRoomCreated }: MultiplayerMenuProps) {
+  const [, setToasts] = useAtom(toastsAtom);
   const [roomCode, setRoomCode] = useState('');
   const [roomPassword, setRoomPassword] = useState('');
   const [currentView, setCurrentView] = useState<ModalView>('main');
@@ -38,15 +40,43 @@ export default function MultiplayerMenu({ onBack, onRoomCreated }: MultiplayerMe
   const handleJoinRoom = async () => {
     try {
       if (!user) {
-        // Handle authentication
         return;
       }
 
       await RoomService.joinRoom(roomCode, user.id, roomPassword || undefined);
+
+      setToasts(prev => [...prev, {
+        id: Date.now().toString(),
+        message: 'Room joined successfully!',
+        type: 'success',
+        duration: 3000,
+      }]);
+
       onRoomCreated(roomCode);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to join room:', error);
-      // TODO: Show toast error to user
+
+      let errorMessage = 'Failed to join room';
+      let submessage = 'Please check the room code and password';
+
+      if (error.response?.status === 404) {
+        errorMessage = 'Room not found';
+        submessage = 'Please check the room code';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'Room is full';
+        submessage = 'Maximum participants reached';
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Invalid password';
+        submessage = 'Please check the room password';
+      }
+
+      setToasts(prev => [...prev, {
+        id: Date.now().toString(),
+        message: errorMessage,
+        submessage,
+        type: 'error',
+        duration: 5000,
+      }]);
     }
   };
 
@@ -54,7 +84,6 @@ export default function MultiplayerMenu({ onBack, onRoomCreated }: MultiplayerMe
     if (!isAuthenticated) {
       setProtectedRouteAttempt('/host-room');
       setShowLoginNeededModal(true);
-      //onBack();
       return;
     }
     setCurrentView('host');
@@ -65,12 +94,27 @@ export default function MultiplayerMenu({ onBack, onRoomCreated }: MultiplayerMe
       setIsCreating(true);
       setCreateRoomError(null);
 
-      const validatedData = CreateRoomSchema.parse(hostForm);
+      setToasts(prev => [...prev, {
+        id: Date.now().toString(),
+        message: 'Creating room...',
+        type: 'info',
+        duration: 2000,
+      }]);
 
+      const validatedData = CreateRoomSchema.parse(hostForm);
       const roomData = await RoomService.createRoom(user!.id, validatedData);
 
       setCreatedRoom(roomData);
       setCurrentView('room-created');
+
+      setToasts(prev => [...prev, {
+        id: Date.now().toString(),
+        message: 'Room created!',
+        submessage: `Share code: ${roomData.code}`,
+        type: 'success',
+        duration: 5000,
+      }]);
+      onRoomCreated(createdRoom!.code);
 
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -78,6 +122,14 @@ export default function MultiplayerMenu({ onBack, onRoomCreated }: MultiplayerMe
       } else {
         setCreateRoomError(error instanceof Error ? error.message : 'Failed to create room');
       }
+
+      setToasts(prev => [...prev, {
+        id: Date.now().toString(),
+        message: 'Failed to create room',
+        submessage: 'Please try again',
+        type: 'error',
+        duration: 5000,
+      }]);
     } finally {
       setIsCreating(false);
     }

@@ -8,6 +8,7 @@ import { BloomScene } from "./Keyboard/MusicNote";
 import Preloader from './Preloader/Preloader';
 import Keyboard from './Keyboard/Keyboard';
 import MainMenu from './Menu/MainMenu';
+import SplashScreen from './LoadingScreen/SplashScreen';
 import { degreesToRad } from './lib/pianoHelpers';
 import AnimatedObject from './LoadingScreen/AnimatedObject';
 import styles from './App.module.scss';
@@ -20,6 +21,7 @@ import { initializeAudioAtom, isAudioReadyAtom } from './atoms/audio';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { singlePlayerAudioSettingsAtom, multiplayerAudioSettingsAtom } from './atoms/audio';
 import { RoomService } from './Multiplayer/RoomService';
+import { toastsAtom } from './atoms/toast';
 
 export default function App() {
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
@@ -31,7 +33,8 @@ export default function App() {
   const [startLoadingAnimations, setStartLoadingAnimations] = useState(false);
   const [currentMultiplayerRoom, setCurrentMultiplayerRoom] = useState<string | null>(null);
   const [webSocketService, setWebSocketService] = useState<WebSocketService | null>(null);
-  const [animationsComplete, setAnimationsComplete] = useState(false);
+  const [_, setAnimationsComplete] = useState(false);
+  const [minDelayPassed, setMinDelayPassed] = useState(false);
 
   const isAudioReady = useAtomValue(isAudioReadyAtom);
   const initializeAudio = useSetAtom(initializeAudioAtom);
@@ -43,11 +46,11 @@ export default function App() {
   const [, markIntroAnimationsPlayed] = useAtom(markIntroAnimationsPlayedAtom);
   const [singlePlayerSettings, setSinglePlayerSettings] = useAtom(singlePlayerAudioSettingsAtom);
   const [multiplayerSettings, setMultiplayerSettings] = useAtom(multiplayerAudioSettingsAtom);
+  const setToasts = useSetAtom(toastsAtom);
 
   const handleEnterClick = async () => {
     setHasUserInteracted(true);
     setStartLoadingAnimations(true);
-
     initializeAudio().catch(error => console.error('Audio initialization failed:', error));
   };
 
@@ -76,6 +79,13 @@ export default function App() {
       try {
         const participants = await RoomService.getRoomParticipants(roomCode);
 
+        setToasts(prev => [...prev, {
+          id: Date.now().toString(),
+          message: 'Connecting to room...',
+          type: 'info',
+          duration: 2000,
+        }]);
+
         const playerObjects = participants.map((participant, index) => {
           const totalPlayers = participants.length;
           const angle = (index / Math.max(totalPlayers, 2)) * Math.PI * 2;
@@ -98,13 +108,31 @@ export default function App() {
         await wsService.connect(roomCode, user.id, token || '');
         setWebSocketService(wsService);
 
+        setToasts(prev => [...prev, {
+          id: Date.now().toString(),
+          message: 'Connected to room!',
+          submessage: `Joined ${roomCode}`,
+          type: 'success',
+          duration: 3000,
+        }]);
+
       } catch (error) {
         console.error('Failed to connect WebSocket:', error);
+
+        setToasts(prev => [...prev, {
+          id: Date.now().toString(),
+          message: 'Failed to connect to room',
+          submessage: 'Please check your connection and try again',
+          type: 'error',
+          duration: 5000,
+        }]);
+
         setShowMainMenu(true);
         setCurrentMultiplayerRoom(null);
       }
     }
   };
+
 
   const handleLeaveMultiplayer = () => {
     setCurrentMultiplayerRoom(null);
@@ -115,6 +143,15 @@ export default function App() {
     }
     setShowMainMenu(true);
   };
+
+  //useEffect(() => {
+  //  const isOAuthCallback = window.location.pathname === '/oauth-callback' ||
+  //    window.location.search.includes('oauth_callback=true');
+
+  //  if (isOAuthCallback) {
+  //    setShowOAuthCallback(true);
+  //  }
+  //}, []);
 
   useEffect(() => {
     if (!menuState.introAnimationsPlayed) {
@@ -133,7 +170,94 @@ export default function App() {
   useEffect(() => {
     if (!webSocketService || !currentMultiplayerRoom) return;
 
+    const handleConnectionLost = (data: any) => {
+      console.log('WebSocket connection lost:', data);
+
+      setToasts(prev => [...prev, {
+        id: Date.now().toString(),
+        message: 'Connection lost',
+        submessage: 'Attempting to reconnect...',
+        type: 'warning',
+        duration: 5000,
+      }]);
+    };
+
+    const handleReconnecting = (data: any) => {
+      console.log('WebSocket reconnecting:', data);
+
+      setToasts(prev => [...prev, {
+        id: Date.now().toString(),
+        message: 'Reconnecting...',
+        submessage: `Attempt ${data.attempt} of ${data.maxAttempts}`,
+        type: 'info',
+        duration: 3000,
+      }]);
+    };
+
+    const handleReconnected = (data: any) => {
+      console.log('WebSocket reconnected:', data);
+
+      setToasts(prev => [...prev, {
+        id: Date.now().toString(),
+        message: 'Connection restored!',
+        type: 'success',
+        duration: 3000,
+      }]);
+    };
+
+    const handleConnectionPermanentlyLost = (data: any) => {
+      console.log('WebSocket connection permanently lost:', data);
+
+      setToasts(prev => [...prev, {
+        id: Date.now().toString(),
+        message: 'Connection lost',
+        submessage: 'Failed to reconnect after multiple attempts',
+        type: 'error',
+        duration: 0, // Don't auto-dismiss
+      }]);
+    };
+
+    const handleConnectionEstablished = (data: any) => {
+      console.log('WebSocket connection established:', data);
+
+      setToasts(prev => [...prev, {
+        id: Date.now().toString(),
+        message: 'Connected to room!',
+        submessage: 'Real-time features are now active',
+        type: 'success',
+        duration: 3000,
+      }]);
+    };
+
+    webSocketService.on('CONNECTION_LOST', handleConnectionLost);
+    webSocketService.on('RECONNECTING', handleReconnecting);
+    webSocketService.on('RECONNECTED', handleReconnected);
+    webSocketService.on('CONNECTION_PERMANENTLY_LOST', handleConnectionPermanentlyLost);
+    webSocketService.on('CONNECTION_ESTABLISHED', handleConnectionEstablished);
+
+
+    return () => {
+      webSocketService.off('CONNECTION_LOST', handleConnectionLost);
+      webSocketService.off('RECONNECTING', handleReconnecting);
+      webSocketService.off('RECONNECTED', handleReconnected);
+      webSocketService.off('CONNECTION_PERMANENTLY_LOST', handleConnectionPermanentlyLost);
+      webSocketService.off('CONNECTION_ESTABLISHED', handleConnectionEstablished);
+    };
+  }, [webSocketService]);
+
+
+  useEffect(() => {
+    if (!webSocketService || !currentMultiplayerRoom) return;
+
     const handlePlayerJoined = (playerData: any) => {
+      const username = playerData.username || `User ${playerData.userId?.slice(0, 8)}`;
+
+      setToasts(prev => [...prev, {
+        id: Date.now().toString(),
+        message: `${username} joined the room`,
+        type: 'info',
+        duration: 3000,
+      }]);
 
       setMultiplayerPlayers(prev => {
         const playerId = playerData.userId || playerData.id;
@@ -169,18 +293,28 @@ export default function App() {
     };
 
     const handlePlayerLeft = (eventData: any) => {
-  const playerId = eventData.userId || eventData.payload?.userId;
+      const playerId = eventData.userId || eventData.payload?.userId;
+      const username = eventData.username || `User ${playerId?.slice(0, 8)}`;
 
-  if (!playerId) {
-    console.error('[App] No player ID found in leave event:', eventData);
-    return;
-  }
+      if (username) {
+        setToasts(prev => [...prev, {
+          id: Date.now().toString(),
+          message: `${username} left the room`,
+          type: 'info',
+          duration: 3000,
+        }]);
+      }
 
-  setMultiplayerPlayers(prev => {
-    const newPlayers = prev.filter(p => p.id !== playerId);
-    return newPlayers;
-  });
-};
+      if (!playerId) {
+        console.error('[App] No player ID found in leave event:', eventData);
+        return;
+      }
+
+      setMultiplayerPlayers(prev => {
+        const newPlayers = prev.filter(p => p.id !== playerId);
+        return newPlayers;
+      });
+    };
 
 
     webSocketService.on('PLAYER_JOINED', handlePlayerJoined);
@@ -199,30 +333,24 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (modelsLoaded && isAudioReady && animationsComplete && !showMainMenu && !showSinglePlayer && !currentMultiplayerRoom)
+    if (modelsLoaded && isAudioReady && minDelayPassed && !showMainMenu && !showSinglePlayer && !currentMultiplayerRoom) {
       handleLoadingComplete();
-  }, [modelsLoaded, isAudioReady, showMainMenu, showSinglePlayer, currentMultiplayerRoom, handleLoadingComplete, animationsComplete]);
+    }
+  }, [modelsLoaded, isAudioReady, minDelayPassed, showMainMenu, showSinglePlayer, currentMultiplayerRoom, handleLoadingComplete]);
+
+  useEffect(() => {
+    if (hasUserInteracted && !minDelayPassed) {
+      const timer = setTimeout(() => {
+        setMinDelayPassed(true);
+      }, 5 * 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [hasUserInteracted, minDelayPassed]);
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
 
-      {!hasUserInteracted && (
-        <div className={styles.splashScreen} onClick={handleEnterClick}>
-          <div className={styles.particle}></div>
-          <div className={styles.particle}></div>
-          <div className={styles.particle}></div>
-          <div className={styles.particle}></div>
-          <div className={styles.particle}></div>
-          <div className={styles.particle}></div>
-          <div className={styles.particle}></div>
-          <div className={styles.particle}></div>
-
-          <div className={styles.splashContent}>
-            <h1>Duo Piano</h1>
-            <p>Click anywhere to start</p>
-          </div>
-        </div>
-      )}
 
       <Preloader
         onLoaded={() => setModelsLoaded(true)}
@@ -242,6 +370,10 @@ export default function App() {
               backgroundPosition: menuState.showSinglePlayerMenu || menuState.showMultiplayerMenu || menuState.showSettingsMenu ? 'right' : 'left'
           }}
         />
+
+        {!hasUserInteracted && (
+          <SplashScreen onEnterClick={handleEnterClick} />
+        )}
 
         <Canvas
           camera={{ position: [0, 0, 1] }}
@@ -298,7 +430,7 @@ export default function App() {
               if (player.id === user?.id) {
                 playerPosition = [0, -6, -10];
             } else {
-                playerPosition = [25, -6, -11];
+              playerPosition = [25, -6, -11];
               rotationY = degreesToRad(32);
             }
             }
@@ -339,7 +471,7 @@ export default function App() {
                 {(menuState.selectedCat === 'both' || menuState.selectedCat === 'black') && (
                   <AnimatedObject
                     url="/models/loading/cat_black.glb"
-                  position={[-0.6, -0.58, 2]}
+                    position={[-0.6, -0.58, 2]}
                     rotation={[0, 0, 0]}
                     scale={[-1.2, 1.2, 1.2]}
                     introAnimationName={"black_cat_duo_piano_loading"}
@@ -352,7 +484,7 @@ export default function App() {
                 {(menuState.selectedCat === 'both' || menuState.selectedCat === 'tuxedo') && (
                   <AnimatedObject
                     url="/models/loading/cat_tuxedo.glb"
-                  position={[-0.6, -0.58, 2]}
+                    position={[-0.6, -0.58, 2]}
                     rotation={[0, 0, 0]}
                     scale={[-1.2, 1.2, 1.2]}
                     introAnimationName={"tuxedo_cat_duo_piano_loading"}
@@ -362,27 +494,27 @@ export default function App() {
                   />
                 )}
 
-                  <AnimatedObject
-                    url="/models/loading/mouse_l.glb"
+                <AnimatedObject
+                  url="/models/loading/mouse_l.glb"
                   position={[-0.6, -0.58, 1.87]}
-                    rotation={[0, 0, 0]}
-                    scale={[-1.0, 1.0, 1.0]}
-                    introAnimationName={"MouseLIntro"}
-                    loopAnimationName="MouseL"
-                    shouldLoop={true}
-                    startAnimation={startLoadingAnimations}
-                  />
+                  rotation={[0, 0, 0]}
+                  scale={[-1.0, 1.0, 1.0]}
+                  introAnimationName={"MouseLIntro"}
+                  loopAnimationName="MouseL"
+                  shouldLoop={true}
+                  startAnimation={startLoadingAnimations}
+                />
 
-                  <AnimatedObject
-                    url="/models/loading/mouse_r.glb"
+                <AnimatedObject
+                  url="/models/loading/mouse_r.glb"
                   position={[-0.6, -0.58, 1.87]}
-                    rotation={[0, 0, 0]}
-                    scale={[-1.0, 1.0, 1.0]}
-                    introAnimationName={"MouseRIntro"}
-                    loopAnimationName="MouseR"
-                    shouldLoop={true}
-                    startAnimation={startLoadingAnimations}
-                  />
+                  rotation={[0, 0, 0]}
+                  scale={[-1.0, 1.0, 1.0]}
+                  introAnimationName={"MouseRIntro"}
+                  loopAnimationName="MouseR"
+                  shouldLoop={true}
+                  startAnimation={startLoadingAnimations}
+                />
 
                 <AnimatedObject
                   url="/models/loading/piano.glb"

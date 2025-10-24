@@ -13,11 +13,42 @@
   animation: gradientShift 8s ease infinite;
 }
 
+@mixin magical-h2 {
+  font-family: 'AVFontimer Regular', sans-serif;
+  font-size: 2.0rem;
+  color: $twilight-purple;
+  font-weight: bold;
+}
+
 @mixin magical-text {
-  font-family: 'AVFontimer Regular', 'Segoe UI', 'Cursive', sans-serif;
+  font-family: 'AVFontimer Regular', sans-serif;
   font-size: 1.1rem;
   color: $twilight-purple;
   font-weight: 300;
+}
+
+@mixin magical-close-button{
+  background: rgba($twilight-purple, 0.1);
+  border: 1px solid rgba($twilight-purple, 0.2);
+  color: $twilight-purple;
+  cursor: pointer;
+  font-size: 1.0rem;
+  border-radius: $radius-sm;
+  transition: all $duration-fast $easing-ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  padding: 0;
+  margin: 0;
+  width: 24px;
+  aspect-ratio: 1;
+
+  &:hover {
+    background: rgba($twilight-purple, 0.2);
+    border-color: rgba($twilight-purple, 0.4);
+    transform: scale(1.1);
+  }
 }
 
 @mixin magical-title {
@@ -30,7 +61,6 @@
   font-weight: 300;
   background: linear-gradient(45deg, $magic-pink, $galaxy-purple);
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
@@ -107,15 +137,16 @@
 }
 
 @mixin magical-card {
-  background: rgba(255, 255, 255, 0);
+  background: rgba(255, 255, 255, 0.7);
   border-radius: $radius-lg;
   padding: $spacing-xl;
   box-shadow: $shadow-heavy;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(12px);
   max-width: 500px;
   width: 90%;
   position: relative;
+  text-align: center;
   
   &::before {
     content: '';
@@ -124,7 +155,12 @@
     left: -2px;
     right: -2px;
     bottom: -2px;
-    background: linear-gradient(45deg, $magic-pink, $starlight-blue, $galaxy-purple, $cosmic-gold);
+    background: linear-gradient(45deg,
+      rgba($magic-pink, 0.3),
+      rgba($starlight-blue, 0.3),
+      rgba($galaxy-purple, 0.3),
+      rgba($cosmic-gold, 0.3)
+    );
     filter: saturate(70%) brightness(35%);
     z-index: -1;
     border-radius: calc(#{$radius-lg} + 2px);

@@ -4,6 +4,7 @@ import { useAtom } from 'jotai';
 import { preferredKeyboardAtom } from '../atoms/auth';
 import styles from './SettingsMenu.module.scss';
 import { useAuth } from '../Auth/AuthContext';
+import { toastsAtom } from '../atoms/toast';
 
 interface SettingsMenuProps {
   onBack: () => void;
@@ -22,6 +23,7 @@ export default function SettingsMenu({ onBack }: SettingsMenuProps) {
     bloomEffect: true,
     showDebug: false
   });
+  const [, setToasts] = useAtom(toastsAtom);
 
   useEffect(() => {
     const savedSettings = localStorage.getItem('app_settings');
@@ -37,21 +39,37 @@ export default function SettingsMenu({ onBack }: SettingsMenuProps) {
   };
 
   const handleKeyboardChange = async (keyboard: 'Casio' | 'Midiplus') => {
-    console.log('handleKeyboardChange called with:', keyboard);
-    console.log('User status:', user ? `Logged in as ${user.username}` : 'Guest');
-
     setPreferredKeyboard(keyboard);
 
     if (user) {
       try {
-        console.log('Updating database with keyboard preference:', keyboard);
         await updatePreferredKeyboard(keyboard);
-        console.log('Database update successful');
+
+        setToasts(prev => [...prev, {
+          id: Date.now().toString(),
+          message: 'Preference saved!',
+          submessage: `Keyboard: ${keyboard}`,
+          type: 'success',
+          duration: 3000,
+        }]);
       } catch (error) {
         console.error('Failed to update keyboard preference in database:', error);
+        setToasts(prev => [...prev, {
+          id: Date.now().toString(),
+          message: 'Failed to save preference',
+          submessage: 'Local change applied only',
+          type: 'warning',
+          duration: 4000,
+        }]);
       }
     } else {
-      console.log('Guest mode - preference saved to localStorage only');
+      setToasts(prev => [...prev, {
+        id: Date.now().toString(),
+        message: 'Preference saved!',
+        submessage: `Keyboard: ${keyboard}`,
+        type: 'success',
+        duration: 3000,
+      }]);
     }
   };
 

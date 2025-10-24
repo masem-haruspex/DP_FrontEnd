@@ -12,15 +12,16 @@ import {
 } from '../atoms/auth';
 import { toastsAtom } from '../atoms/toast';
 import { setCookie, deleteCookie, getCookie } from '../lib/cookies';
-import { generateCodeVerifier, generateCodeChallenge } from '../lib/pkce';
+import { generateCodeVerifier, generateCodeChallenge, generateRandomState } from '../lib/pkce';
 
 interface AuthContextType {
+  login: (credentials: { identifier: string; password: string }) => Promise<void>;
   register: (data: { username: string; email: string; password: string }) => Promise<void>;
   logout: () => void;
   setPreferredKeyboard: (keyboard: 'Casio' | 'Midiplus') => void;
   updatePreferredKeyboard: (keyboard: 'Casio' | 'Midiplus') => Promise<void>;
   setProtectedRouteAttempt: (route: string | null) => void;
-  loginWithOAuth2: () => Promise<void>;
+  loginWithOAuth2: (provider: 'google' | 'facebook', onSuccess?: () => void) => void;
   isAuthenticated: boolean;
   isLoading: boolean;
   user: User | null;
@@ -29,8 +30,52 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const DEBUG = true;
 
-function generateRandomState() {
-  return Math.random().toString(36).substring(2, 15);
+// Fetch user info from token or userinfo endpoint
+async function fetchUserInfo(accessToken: string): Promise<User> {
+  try {
+    // Try userinfo endpoint first
+    const response = await fetch('http://localhost:8080/userinfo', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+
+    if (response.ok) {
+      const userInfo = await response.json();
+      return {
+        id: userInfo.user_id || userInfo.sub,
+        username: userInfo.preferred_username || userInfo.username || userInfo.sub,
+        email: userInfo.email,
+        passwordHash: '', // Not needed from token
+        provider: userInfo.provider,
+        providerId: userInfo.provider_id,
+        preferredKeyboard: userInfo.preferred_keyboard || 'Casio',
+      };
+    }
+  } catch (error) {
+    console.warn('Failed to fetch userinfo, decoding token instead:', error);
+  }
+
+  // Fallback: decode token directly
+  try {
+    const tokenParts = accessToken.split('.');
+    if (tokenParts.length === 3) {
+      const payload = JSON.parse(atob(tokenParts[1]));
+      return {
+        id: payload.user_id || payload.sub,
+        username: payload.preferred_username || payload.username || payload.sub,
+        email: payload.email,
+        passwordHash: '',
+        provider: payload.provider,
+        providerId: payload.provider_id,
+        preferredKeyboard: payload.preferred_keyboard || 'Casio',
+      };
+    }
+  } catch (error) {
+    console.error('Failed to decode token:', error);
+  }
+
+  throw new Error('Could not retrieve user information');
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -68,174 +113,238 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [setAuth]);
 
-  // Handle OAuth2 callback
-  useEffect(() => {
-    const handleOAuth2Callback = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get('code');
-      const error = urlParams.get('error');
-      const state = urlParams.get('state');
+  // Traditional login using OAuth2 Password Grant
+  const login = async (credentials: { identifier: string; password: string }) => {
+    try {
+      // Generate PKCE parameters
+      const codeVerifier = generateCodeVerifier();
+      const codeChallenge = await generateCodeChallenge(codeVerifier);
 
-      if (error) {
-        console.error('OAuth2 error:', error);
-        setToasts(prev => [...prev, {
-          id: Date.now().toString(),
-          message: `OAuth2 login failed: ${error}`,
-          type: 'error',
-          duration: 5000,
-        }]);
-        window.history.replaceState({}, document.title, window.location.pathname);
+      // Store code verifier for token exchange
+      sessionStorage.setItem('code_verifier', codeVerifier);
+
+      // Make OAuth2 token request with password grant
+      const tokenResponse = await fetch(`${authApiUrl}/oauth2/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          grant_type: 'password_pkce',
+          username: credentials.identifier,
+          password: credentials.password,
+          client_id: 'internal-client',
+          code_challenge: codeChallenge,
+          code_challenge_method: 'S256',
+          scope: 'openid profile email',
+        }),
+      });
+
+      if (!tokenResponse.ok) {
+        const errorData = await tokenResponse.json();
+        throw new Error(errorData.error_description || errorData.error || 'Login failed');
+      }
+
+      const tokenData = await tokenResponse.json();
+
+      // Process the token response
+      await handleTokenResponse(tokenData);
+
+    } catch (error: any) {
+      setToasts(prev => [...prev, {
+        id: Date.now().toString(),
+        message: error.message || 'Login failed',
+        type: 'error',
+        duration: 5000,
+      }]);
+      throw error;
+    }
+  };
+
+  const loginWithOAuth2 = (provider: 'google' | 'facebook', onSuccess?: () => void) => {
+    try {
+        const width = 600;
+        const height = 700;
+        const left = (window.screen.width - width) / 2;
+        const top = (window.screen.height - height) / 2;
+
+        // Use Spring Security's built-in OAuth2 endpoint
+        const authUrl = `${authApiUrl}/oauth2/authorization/${provider}`;
+
+        const popup = window.open(
+            authUrl,
+            'oauth2_login',
+            `width=${width},height=${height},left=${left},top=${top}`
+        );
+
+        if (!popup) {
+            throw new Error('Popup blocked! Please allow popups for this site.');
+        }
+
+        // Listen for message from popup
+        const messageHandler = async (event: MessageEvent) => {
+            console.log('📨 Message received:', event.data); // Add this line
+
+          if (event.origin !== window.location.origin && event.origin !== "http://localhost:8080") {
+        console.log('❌ Wrong origin:', event.origin);
         return;
-      }
+    }
 
-      if (code) {
-        const codeVerifier = sessionStorage.getItem('code_verifier');
-        const savedState = sessionStorage.getItem('oauth_state');
+            if (event.data.type === 'OAUTH2_CODE') {
+                      console.log('✅ OAUTH2_CODE received, processing...');
 
-        if (!codeVerifier) {
-          console.error('No code verifier found');
-          setToasts(prev => [...prev, {
-            id: Date.now().toString(),
-            message: 'OAuth2 session expired. Please try again.',
-            type: 'error',
-            duration: 5000,
-          }]);
-          window.history.replaceState({}, document.title, window.location.pathname);
-          return;
-        }
+                window.removeEventListener('message', messageHandler);
 
-        if (state !== savedState) {
-          console.error('State mismatch');
-          setToasts(prev => [...prev, {
-            id: Date.now().toString(),
-            message: 'OAuth2 security validation failed. Please try again.',
-            type: 'error',
-            duration: 5000,
-          }]);
-          window.history.replaceState({}, document.title, window.location.pathname);
-          return;
-        }
-
-        try {
-          const response = await fetch(`${authApiUrl}/oauth2/token`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-              grant_type: 'authorization_code',
-              code: code,
-              redirect_uri: `${baseURL}`,
-              client_id: 'internal-client',
-              code_verifier: codeVerifier,
-            }),
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error_description || errorData.error);
-          }
-
-          const tokenData = await response.json();
-          
-          if (DEBUG) console.log('OAuth2 token received:', tokenData);
-
-          // Store tokens
-          const expiresInDays = rememberMe ? 365 : 0;
-          setCookie('token', tokenData.access_token, expiresInDays);
-          
-          if (tokenData.refresh_token) {
-            sessionStorage.setItem('refresh_token', tokenData.refresh_token);
-          }
-
-          let userData = tokenData.user;
-          if (!userData) {
-            // extract info directly from access_token JWT
-            const tokenParts = tokenData.access_token.split('.');
-            if (tokenParts.length === 3) {
-              const payload = JSON.parse(atob(tokenParts[1]));
-              userData = {
-                id: payload.user_id,
-                username: payload.sub,
-                email: payload.email,
-                preferredKeyboard: payload.preferred_keyboard,
-              };
-            }
-          }
-
-          localStorage.setItem('user', JSON.stringify(userData));
-
-          setAuth({
-            user: userData,
-            token: tokenData.access_token,
-            isLoading: false,
-            isAuthenticated: true,
-          });
-
-          axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${tokenData.access_token}`;
-          queryClient.invalidateQueries({ queryKey: ['user'] });
-
-          if (userData?.preferredKeyboard) {
-            setPreferredKeyboard(userData.preferredKeyboard);
-          }
-
-          setToasts(prev => [...prev, {
-            id: Date.now().toString(),
-            message: 'OAuth2 login successful!',
-            type: 'success',
-            duration: 3000,
-          }]);
-
-          // Clean up
-          sessionStorage.removeItem('code_verifier');
-          sessionStorage.removeItem('oauth_state');
-          window.history.replaceState({}, document.title, window.location.pathname);
-
-        } catch (error: any) {
-          console.error('Token exchange failed:', error);
-          setToasts(prev => [...prev, {
-            id: Date.now().toString(),
-            message: error.message || 'Failed to complete OAuth2 login',
-            type: 'error',
-            duration: 5000,
-          }]);
-          sessionStorage.removeItem('code_verifier');
-          sessionStorage.removeItem('oauth_state');
-          window.history.replaceState({}, document.title, window.location.pathname);
-        }
-      }
+                  // Use the token directly from backend
+    const tokenData = {
+        access_token: event.data.accessToken,
+        token_type: 'Bearer'
     };
 
-    handleOAuth2Callback();
-  }, [setAuth, setToasts, setPreferredKeyboard, queryClient, rememberMe, authApiUrl, baseURL]);
+                      console.log('🔑 Token data:', tokenData);
+
+    await handleTokenResponse(tokenData); // This will call fetchUserInfo
+                      console.log('✅ handleTokenResponse completed');
+              onSuccess?.();
 
 
+                //// User is authenticated, now get a token using your existing password_pkce flow
+                //const user = event.data.user;
+
+                //// Generate PKCE parameters for token exchange
+                //const codeVerifier = generateCodeVerifier();
+                //const codeChallenge = await generateCodeChallenge(codeVerifier);
+                //sessionStorage.setItem('code_verifier', codeVerifier);
+
+                //// Get JWT token using password_pkce grant
+                //const tokenResponse = await fetch(`${authApiUrl}/oauth2/token`, {
+                //    method: 'POST',
+                //    headers: {
+                //        'Content-Type': 'application/x-www-form-urlencoded',
+                //    },
+                //    body: new URLSearchParams({
+                //        grant_type: 'password_pkce',
+                //        username: user.username,
+                //        password: 'oauth-user', // Use a placeholder since OAuth users don't have passwords
+                //        client_id: 'internal-client',
+                //        code_challenge: codeChallenge,
+                //        code_challenge_method: 'S256',
+                //        scope: 'openid profile email',
+                //    }),
+                //});
+
+                //if (tokenResponse.ok) {
+                //    const tokenData = await tokenResponse.json();
+                //    await handleTokenResponse(tokenData);
+                //} else {
+                //    throw new Error('Failed to get token after OAuth login');
+                //}
+
+            } else if (event.data.type === 'OAUTH2_ERROR') {
+           console.log('OAUTH2_ERROR:', event.data.error);
+                window.removeEventListener('message', messageHandler);
+                setToasts(prev => [...prev, {
+                    id: Date.now().toString(),
+                    message: event.data.error || 'OAuth2 login failed',
+                    type: 'error',
+                    duration: 5000,
+                }]);
+            }
+        };
+
+        window.addEventListener('message', messageHandler);
+
+    } catch (error: any) {
+           console.log('OAUTH2_ERROR:', error.message);
+        setToasts(prev => [...prev, {
+            id: Date.now().toString(),
+            message: error.message || 'Failed to initiate OAuth2 login',
+            type: 'error',
+            duration: 5000,
+        }]);
+    }
+};
+
+  // Exchange authorization code for tokens
+  const exchangeCodeForToken = async (code: string, codeVerifier: string) => {
+    try {
+      const response = await fetch(`${authApiUrl}/oauth2/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          code: code,
+          client_id: 'internal-client',
+          code_verifier: codeVerifier,
+          redirect_uri: `${baseURL}/oauth-callback`,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error_description || errorData.error || 'Token exchange failed');
+      }
+
+      const tokenData = await response.json();
+      await handleTokenResponse(tokenData);
+
+    } catch (error: any) {
+      setToasts(prev => [...prev, {
+        id: Date.now().toString(),
+        message: error.message || 'Failed to complete OAuth2 login',
+        type: 'error',
+        duration: 5000,
+      }]);
+      throw error;
+    }
+  };
+
+  // Common token handling for both login types
+  const handleTokenResponse = async (tokenData: any) => {
+    if (DEBUG) console.log('Token received:', tokenData);
+
+    const expiresInDays = rememberMe ? 365 : 0;
+    setCookie('token', tokenData.access_token, expiresInDays);
+
+    // Get user info from token
+    const user = await fetchUserInfo(tokenData.access_token);
+    localStorage.setItem('user', JSON.stringify(user));
+
+    setAuth({
+      user: user,
+      token: tokenData.access_token,
+      isLoading: false,
+      isAuthenticated: true,
+    });
+
+    axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${tokenData.access_token}`;
+    queryClient.invalidateQueries({ queryKey: ['user'] });
+
+    if (user.preferredKeyboard) {
+      setPreferredKeyboard(user.preferredKeyboard);
+    }
+
+    setToasts(prev => [...prev, {
+      id: Date.now().toString(),
+      message: 'Login successful!',
+      type: 'success',
+      duration: 3000,
+    }]);
+  };
 
   const registerMutation = useMutation({
     mutationFn: async (data: { username: string; email: string; password: string }) => {
       const response = await axiosInstance.post(`${authApiUrl}/api/auth/register`, data);
       return response.data;
     },
-    onSuccess: (data) => {
-      setCookie('token', data.token, rememberMe ? 365 : 0);
-      localStorage.setItem('user', JSON.stringify(data.user));
-
-      setAuth({
-        user: data.user,
-        token: data.token,
-        isLoading: false,
-        isAuthenticated: true,
+    onSuccess: async (_, variables) => {
+      // After successful registration, automatically log the user in
+      await login({
+        identifier: variables.username,
+        password: variables.password
       });
-
-      axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
-      queryClient.invalidateQueries({ queryKey: ['user'] });
-
-      setToasts(prev => [...prev, {
-        id: Date.now().toString(),
-        message: 'Registration successful!',
-        type: 'success',
-        duration: 3000,
-      }]);
     },
     onError: (error: any) => {
       setToasts(prev => [...prev, {
@@ -251,8 +360,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     mutationFn: async (keyboard: 'Casio' | 'Midiplus') => {
       const userId = auth.user?.id;
       const response = await axiosInstance.put(
-        `${authApiUrl}/api/auth/${userId}`, 
-        { preferredKeyboard: keyboard }, 
+        `${authApiUrl}/api/auth/${userId}`,
+        { preferredKeyboard: keyboard },
         { withCredentials: true }
       );
       return response.data;
@@ -298,41 +407,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await updateKeyboardMutation.mutateAsync(keyboard);
   };
 
-  const loginWithOAuth2 = async () => {
-    try {
-      const codeVerifier = generateCodeVerifier();
-      const codeChallenge = await generateCodeChallenge(codeVerifier);
-      const state = generateRandomState();
-
-      sessionStorage.setItem('code_verifier', codeVerifier);
-      sessionStorage.setItem('oauth_state', state);
-
-      const params = new URLSearchParams({
-        client_id: 'internal-client',
-        redirect_uri: `${baseURL}`,
-        response_type: 'code',
-        scope: 'openid profile email read write',
-        code_challenge: codeChallenge,
-        code_challenge_method: 'S256',
-        state: state,
-      });
-
-      window.location.href = `${authApiUrl}/oauth2/authorize?${params}`;
-    } catch (error) {
-      console.error('Failed to initiate OAuth2 login:', error);
-      setToasts(prev => [...prev, {
-        id: Date.now().toString(),
-        message: 'Failed to initiate OAuth2 login',
-        type: 'error',
-        duration: 5000,
-      }]);
-    }
-  };
-
   const logout = () => {
     deleteCookie('token');
     localStorage.removeItem('user');
-    sessionStorage.removeItem('refresh_token');
     sessionStorage.removeItem('code_verifier');
     sessionStorage.removeItem('oauth_state');
 
@@ -355,6 +432,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const value: AuthContextType = {
+    login,
     register,
     logout,
     setPreferredKeyboard,

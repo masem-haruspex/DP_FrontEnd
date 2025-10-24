@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<!-- /public/oauth-popup.html -->
+<html>
+<head>
+    <title>Login - Duo Piano</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .loading {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading">
+        <h2>Completing Login...</h2>
+        <p>Please wait while we finish your login.</p>
+    </div>
+
+    <script type="module">
+        import('/src/Auth/OAuthCallback.tsx').then(module => {
+            const OAuthCallback = module.default;
+
+            const root = document.createElement('div');
+            root.id = 'root';
+            document.body.innerHTML = '';
+            document.body.appendChild(root);
+
+            // You might need to use ReactDOM here depending on your setup
+            // For now, let's keep it simple
+        }).catch(error => {
+            console.error('Failed to load OAuthCallback:', error);
+        });
+    </script>
+</body>
+</html>

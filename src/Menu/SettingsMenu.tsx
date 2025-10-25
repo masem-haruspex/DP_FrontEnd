@@ -1,10 +1,11 @@
 // Menu/SettingsMenu.tsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useAtom } from 'jotai';
 import { preferredKeyboardAtom } from '../atoms/auth';
 import styles from './SettingsMenu.module.scss';
 import { useAuth } from '../Auth/AuthContext';
 import { toastsAtom } from '../atoms/toast';
+import { ThemeContext } from './ThemeContext';
 
 interface SettingsMenuProps {
   onBack: () => void;
@@ -17,13 +18,14 @@ export default function SettingsMenu({ onBack }: SettingsMenuProps) {
     soundEnabled: true,
     visualEffects: true,
     autoSave: false,
-    darkMode: true,
+    darkMode: false,
     notifications: true,
     showParticles: true,
     bloomEffect: true,
     showDebug: false
   });
   const [, setToasts] = useAtom(toastsAtom);
+  const { setDarkMode } = useContext(ThemeContext);
 
   useEffect(() => {
     const savedSettings = localStorage.getItem('app_settings');
@@ -32,11 +34,16 @@ export default function SettingsMenu({ onBack }: SettingsMenuProps) {
     }
   }, []);
 
-  const handleToggle = (key: keyof typeof settings) => {
-    const newSettings = { ...settings, [key]: !settings[key] };
-    setSettings(newSettings);
-    localStorage.setItem('app_settings', JSON.stringify(newSettings));
-  };
+const handleToggle = (key: keyof typeof settings) => {
+  const newSettings = { ...settings, [key]: !settings[key] };
+  setSettings(newSettings);
+  localStorage.setItem('app_settings', JSON.stringify(newSettings));
+
+  // Sync with theme context when darkMode changes
+  if (key === 'darkMode') {
+    setDarkMode(newSettings.darkMode);
+  }
+};
 
   const handleKeyboardChange = async (keyboard: 'Casio' | 'Midiplus') => {
     setPreferredKeyboard(keyboard);

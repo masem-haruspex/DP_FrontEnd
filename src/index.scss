@@ -1,4 +1,7 @@
-/* index.css */
+/* index.scss */
+
+@use './styles/vars';
+@use './styles/mixins';
 
 * {
   font-family: 'Inter', sans-serif;

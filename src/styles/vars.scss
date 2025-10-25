@@ -48,6 +48,9 @@ $easing-ease: cubic-bezier(0.4, 0, 0.2, 1);
 $easing-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
 :root {
+  --color-card-bg: rgba(255, 255, 255, 0.7);
+  --color-card-border: rgba(255, 255, 255, 0.8);
+
   --color-magic-pink: #{$magic-pink};
   --color-starlight-blue: #{$starlight-blue};
   --color-moonstone-silver: #{$moonstone-silver};
@@ -87,6 +90,11 @@ $easing-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
   --duration-slow: #{$duration-slow};
   --easing-ease: #{$easing-ease};
   --easing-bounce: #{$easing-bounce};
+}
+
+body.dark {
+  --color-card-bg: rgba(25, 25, 40, 0.8);
+  --color-card-border: rgba(255, 255, 255, 0.1);
 }
 
 @font-face {

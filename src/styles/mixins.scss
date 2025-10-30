@@ -1,6 +1,10 @@
 // styles/mixins.scss
 @use './vars' as *;
 
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+}
+
 @mixin magical-gradient($direction: 135deg) {
   background: linear-gradient(
     $direction,
@@ -137,11 +141,11 @@
 }
 
 @mixin magical-card {
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--color-card-bg);
   border-radius: $radius-lg;
   padding: $spacing-xl;
   box-shadow: $shadow-heavy;
-  border: 2px solid rgba(255, 255, 255, 0.8);
+  border: 2px solid var(--color-card-border);
   backdrop-filter: blur(12px);
   max-width: 500px;
   width: 90%;

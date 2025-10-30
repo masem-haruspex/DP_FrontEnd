@@ -1,5 +1,5 @@
 // Auth/AuthContext.tsx
-import { createContext, useContext, useEffect } from 'react';
+import { createContext, useContext, useEffect, useRef } from 'react';
 import { useAtom, useSetAtom } from 'jotai';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '../lib/axiosInstance';
@@ -12,7 +12,7 @@ import {
 } from '../atoms/auth';
 import { toastsAtom } from '../atoms/toast';
 import { setCookie, deleteCookie, getCookie } from '../lib/cookies';
-import { generateCodeVerifier, generateCodeChallenge, generateRandomState } from '../lib/pkce';
+import { generateCodeVerifier, generateCodeChallenge } from '../lib/pkce';
 
 interface AuthContextType {
   login: (credentials: { identifier: string; password: string }) => Promise<void>;
@@ -29,41 +29,17 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const DEBUG = true;
+const TOKEN_REFRESH_BUFFER = 5 * 60 * 1000; // 5min
 
-// Fetch user info from token or userinfo endpoint
 async function fetchUserInfo(accessToken: string): Promise<User> {
-  try {
-    // Try userinfo endpoint first
-    const response = await fetch('http://localhost:8080/userinfo', {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-      },
-    });
-
-    if (response.ok) {
-      const userInfo = await response.json();
-      return {
-        id: userInfo.user_id || userInfo.sub,
-        username: userInfo.preferred_username || userInfo.username || userInfo.sub,
-        email: userInfo.email,
-        passwordHash: '', // Not needed from token
-        provider: userInfo.provider,
-        providerId: userInfo.provider_id,
-        preferredKeyboard: userInfo.preferred_keyboard || 'Casio',
-      };
-    }
-  } catch (error) {
-    console.warn('Failed to fetch userinfo, decoding token instead:', error);
-  }
-
-  // Fallback: decode token directly
   try {
     const tokenParts = accessToken.split('.');
     if (tokenParts.length === 3) {
       const payload = JSON.parse(atob(tokenParts[1]));
+
       return {
-        id: payload.user_id || payload.sub,
-        username: payload.preferred_username || payload.username || payload.sub,
+        id: payload.sub || payload.user_id,
+        username: payload.username,
         email: payload.email,
         passwordHash: '',
         provider: payload.provider,
@@ -72,10 +48,10 @@ async function fetchUserInfo(accessToken: string): Promise<User> {
       };
     }
   } catch (error) {
-    console.error('Failed to decode token:', error);
+    console.error('Failed to decode JWT token:', error);
   }
 
-  throw new Error('Could not retrieve user information');
+  throw new Error('Could not retrieve user information from JWT');
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -86,8 +62,196 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const setToasts = useSetAtom(toastsAtom);
   const queryClient = useQueryClient();
 
-  const baseURL = import.meta.env.VITE_BASE_URL;
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const retryCountRef = useRef<number>(0);
+
   const authApiUrl = import.meta.env.VITE_AUTH_API_BASE_URL || 'http://localhost:8080';
+
+  const scheduleTokenRefresh = (expiresIn: number) => {
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+      refreshTimeoutRef.current = null;
+    }
+
+    const refreshTime = Math.max(expiresIn - TOKEN_REFRESH_BUFFER, 0);
+
+    refreshTimeoutRef.current = setTimeout(() => {
+      refreshToken();
+    }, refreshTime);
+
+    if (DEBUG) console.log(`Token refresh scheduled in ${refreshTime}ms`);
+  };
+
+  const refreshToken = async () => {
+    try {
+      const refreshTokenValue = getCookie('refresh_token');
+      if (!refreshTokenValue) {
+        throw new Error('No refresh token available');
+      }
+
+      const response = await fetch(`${authApiUrl}/oauth2/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          grant_type: 'refresh_token',
+          refresh_token: refreshTokenValue,
+          client_id: 'internal-client',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error_description || errorData.error || 'Token refresh failed');
+      }
+
+      const tokenData = await response.json();
+      await handleTokenResponse(tokenData);
+
+      retryCountRef.current = 0;
+
+      if (DEBUG) console.log('Token refreshed successfully');
+
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      handleRefreshFailure();
+    }
+  };
+
+  const handleRefreshFailure = () => {
+    retryCountRef.current++;
+    const maxRetries = 3;
+
+    if (retryCountRef.current <= maxRetries) {
+      const retryDelay = 30000 * retryCountRef.current; // Exponential backoff: 30s, 60s, 90s
+      if (DEBUG) console.log(`Scheduling retry ${retryCountRef.current} in ${retryDelay}ms`);
+
+      setTimeout(() => {
+        refreshToken();
+      }, retryDelay);
+    } else {
+      if (DEBUG) console.log('Max refresh retries exceeded, logging out');
+      setToasts(prev => [...prev, {
+        id: Date.now().toString(),
+        message: 'Session expired',
+        submessage: 'Please log in again',
+        type: 'warning',
+        duration: 5000,
+      }]);
+      logout(); 
+    }
+  };
+
+  const extractTokenExpiry = (token: string): number | null => {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.exp * 1000; 
+    } catch {
+      return null;
+    }
+  };
+
+  const fetchCsrfTokenWithRetry = async (maxRetries: number = 3, baseDelay: number = 1000) => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await fetch('http://localhost:8080/api/csrf', {
+          method: 'GET',
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          if (DEBUG) console.log('CSRF token fetched successfully');
+          return true;
+        } else {
+          console.warn(`CSRF fetch attempt ${attempt} failed: ${response.status}`);
+        }
+      } catch (error) {
+        console.warn(`CSRF fetch attempt ${attempt} error:`, error);
+      }
+
+      if (attempt < maxRetries) {
+        const delay = baseDelay * Math.pow(2, attempt - 1);
+        if (DEBUG) console.log(`Retrying CSRF fetch in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+
+    console.error('All CSRF token fetch attempts failed');
+    setToasts(prev => [...prev, {
+      id: Date.now().toString(),
+      message: 'Security session setup failed',
+      submessage: 'Some features may not work properly',
+      type: 'warning',
+      duration: 5000,
+    }]);
+
+    return false;
+  };
+
+  const fetchCsrfToken = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/api/csrf', {
+        method: 'GET',
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        if (DEBUG) console.log('CSRF token fetched successfully');
+      } else {
+        console.warn('Failed to fetch CSRF token');
+      }
+    } catch (error) {
+      console.warn('Failed to fetch CSRF token:', error);
+    }
+  };
+
+  const handleTokenResponse = async (tokenData: any) => {
+    if (DEBUG) console.log('Token received:', tokenData);
+
+    const expiresInDays = rememberMe ? 365 : 0;
+    setCookie('token', tokenData.access_token, expiresInDays);
+
+    if (tokenData.refresh_token) {
+      setCookie('refresh_token', tokenData.refresh_token, expiresInDays);
+    }
+
+    const user = await fetchUserInfo(tokenData.access_token);
+    localStorage.setItem('user', JSON.stringify(user));
+
+    setAuth({
+      user: user,
+      token: tokenData.access_token,
+      isLoading: false,
+      isAuthenticated: true,
+    });
+
+    axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${tokenData.access_token}`;
+    queryClient.invalidateQueries({ queryKey: ['user'] });
+
+    if (user.preferredKeyboard) {
+      setPreferredKeyboard(user.preferredKeyboard);
+    }
+
+    const tokenExpiry = extractTokenExpiry(tokenData.access_token);
+    if (tokenExpiry) {
+      const timeUntilExpiry = tokenExpiry - Date.now();
+      scheduleTokenRefresh(timeUntilExpiry);
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('show-toast', {
+        detail: {
+          id: Date.now().toString(),
+          message: 'Login successful!',
+          type: 'success',
+          duration: 3000
+        }
+      }));
+    }
+
+    await fetchCsrfTokenWithRetry();
+  };
 
   useEffect(() => {
     const token = getCookie('token');
@@ -103,27 +267,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           isAuthenticated: true,
         });
         axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+        const tokenExpiry = extractTokenExpiry(token);
+        if (tokenExpiry) {
+          const timeUntilExpiry = tokenExpiry - Date.now();
+          if (timeUntilExpiry > TOKEN_REFRESH_BUFFER) {
+            scheduleTokenRefresh(timeUntilExpiry);
+          } else if (timeUntilExpiry > 0) {
+            if (DEBUG) console.log('Token about to expire, refreshing immediately');
+            refreshToken();
+          } else {
+            if (DEBUG) console.log('Token expired, attempting refresh');
+            refreshToken();
+          }
+        }
       } catch (error) {
         deleteCookie('token');
+        deleteCookie('refresh_token');
         localStorage.removeItem('user');
         setAuth(prev => ({ ...prev, isLoading: false }));
       }
     } else {
       setAuth(prev => ({ ...prev, isLoading: false }));
     }
+
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+        refreshTimeoutRef.current = null;
+      }
+    };
   }, [setAuth]);
 
-  // Traditional login using OAuth2 Password Grant
+  useEffect(() => {
+    const checkCsrfToken = async () => {
+      if (auth.isAuthenticated && !auth.isLoading) {
+        await fetchCsrfToken();
+      }
+    };
+
+    checkCsrfToken();
+  }, [auth.isAuthenticated, auth.isLoading]);
+
   const login = async (credentials: { identifier: string; password: string }) => {
     try {
-      // Generate PKCE parameters
       const codeVerifier = generateCodeVerifier();
       const codeChallenge = await generateCodeChallenge(codeVerifier);
-
-      // Store code verifier for token exchange
       sessionStorage.setItem('code_verifier', codeVerifier);
 
-      // Make OAuth2 token request with password grant
       const tokenResponse = await fetch(`${authApiUrl}/oauth2/token`, {
         method: 'POST',
         headers: {
@@ -146,8 +337,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const tokenData = await tokenResponse.json();
-
-      // Process the token response
       await handleTokenResponse(tokenData);
 
     } catch (error: any) {
@@ -163,175 +352,70 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginWithOAuth2 = (provider: 'google' | 'facebook', onSuccess?: () => void) => {
     try {
-        const width = 600;
-        const height = 700;
-        const left = (window.screen.width - width) / 2;
-        const top = (window.screen.height - height) / 2;
+      const width = 600;
+      const height = 700;
+      const left = (window.screen.width - width) / 2;
+      const top = (window.screen.height - height) / 2;
 
-        // Use Spring Security's built-in OAuth2 endpoint
-        const authUrl = `${authApiUrl}/oauth2/authorization/${provider}`;
+      const authUrl = `${authApiUrl}/oauth2/authorization/${provider}`;
 
-        const popup = window.open(
-            authUrl,
-            'oauth2_login',
-            `width=${width},height=${height},left=${left},top=${top}`
-        );
+      const popup = window.open(
+        authUrl,
+        'oauth2_login',
+        `width=${width},height=${height},left=${left},top=${top}`
+      );
 
-        if (!popup) {
-            throw new Error('Popup blocked! Please allow popups for this site.');
-        }
-
-        // Listen for message from popup
-        const messageHandler = async (event: MessageEvent) => {
-            console.log('📨 Message received:', event.data); // Add this line
-
-          if (event.origin !== window.location.origin && event.origin !== "http://localhost:8080") {
-        console.log('❌ Wrong origin:', event.origin);
-        return;
-    }
-
-            if (event.data.type === 'OAUTH2_CODE') {
-                      console.log('✅ OAUTH2_CODE received, processing...');
-
-                window.removeEventListener('message', messageHandler);
-
-                  // Use the token directly from backend
-    const tokenData = {
-        access_token: event.data.accessToken,
-        token_type: 'Bearer'
-    };
-
-                      console.log('🔑 Token data:', tokenData);
-
-    await handleTokenResponse(tokenData); // This will call fetchUserInfo
-                      console.log('✅ handleTokenResponse completed');
-              onSuccess?.();
-
-
-                //// User is authenticated, now get a token using your existing password_pkce flow
-                //const user = event.data.user;
-
-                //// Generate PKCE parameters for token exchange
-                //const codeVerifier = generateCodeVerifier();
-                //const codeChallenge = await generateCodeChallenge(codeVerifier);
-                //sessionStorage.setItem('code_verifier', codeVerifier);
-
-                //// Get JWT token using password_pkce grant
-                //const tokenResponse = await fetch(`${authApiUrl}/oauth2/token`, {
-                //    method: 'POST',
-                //    headers: {
-                //        'Content-Type': 'application/x-www-form-urlencoded',
-                //    },
-                //    body: new URLSearchParams({
-                //        grant_type: 'password_pkce',
-                //        username: user.username,
-                //        password: 'oauth-user', // Use a placeholder since OAuth users don't have passwords
-                //        client_id: 'internal-client',
-                //        code_challenge: codeChallenge,
-                //        code_challenge_method: 'S256',
-                //        scope: 'openid profile email',
-                //    }),
-                //});
-
-                //if (tokenResponse.ok) {
-                //    const tokenData = await tokenResponse.json();
-                //    await handleTokenResponse(tokenData);
-                //} else {
-                //    throw new Error('Failed to get token after OAuth login');
-                //}
-
-            } else if (event.data.type === 'OAUTH2_ERROR') {
-           console.log('OAUTH2_ERROR:', event.data.error);
-                window.removeEventListener('message', messageHandler);
-                setToasts(prev => [...prev, {
-                    id: Date.now().toString(),
-                    message: event.data.error || 'OAuth2 login failed',
-                    type: 'error',
-                    duration: 5000,
-                }]);
-            }
-        };
-
-        window.addEventListener('message', messageHandler);
-
-    } catch (error: any) {
-           console.log('OAUTH2_ERROR:', error.message);
-        setToasts(prev => [...prev, {
-            id: Date.now().toString(),
-            message: error.message || 'Failed to initiate OAuth2 login',
-            type: 'error',
-            duration: 5000,
-        }]);
-    }
-};
-
-  // Exchange authorization code for tokens
-  const exchangeCodeForToken = async (code: string, codeVerifier: string) => {
-    try {
-      const response = await fetch(`${authApiUrl}/oauth2/token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          grant_type: 'authorization_code',
-          code: code,
-          client_id: 'internal-client',
-          code_verifier: codeVerifier,
-          redirect_uri: `${baseURL}/oauth-callback`,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error_description || errorData.error || 'Token exchange failed');
+      if (!popup) {
+        throw new Error('Popup blocked! Please allow popups for this site.');
       }
 
-      const tokenData = await response.json();
-      await handleTokenResponse(tokenData);
+      const messageHandler = async (event: MessageEvent) => {
+        console.log('📨 Message received:', event.data);
+
+        if (event.origin !== window.location.origin && event.origin !== "http://localhost:8080") {
+          console.log('❌ Wrong origin:', event.origin);
+          return;
+        }
+
+        if (event.data.type === 'OAUTH2_CODE') {
+          console.log('✅ OAUTH2_CODE received, processing...');
+
+          window.removeEventListener('message', messageHandler);
+
+          const tokenData = {
+            access_token: event.data.accessToken,
+            token_type: 'Bearer'
+          };
+
+          console.log('🔑 Token data:', tokenData);
+
+          await handleTokenResponse(tokenData);
+          console.log('✅ handleTokenResponse completed');
+          onSuccess?.();
+
+        } else if (event.data.type === 'OAUTH2_ERROR') {
+          console.log('OAUTH2_ERROR:', event.data.error);
+          window.removeEventListener('message', messageHandler);
+          setToasts(prev => [...prev, {
+            id: Date.now().toString(),
+            message: event.data.error || 'OAuth2 login failed',
+            type: 'error',
+            duration: 5000,
+          }]);
+        }
+      };
+
+      window.addEventListener('message', messageHandler);
 
     } catch (error: any) {
+      console.log('OAUTH2_ERROR:', error.message);
       setToasts(prev => [...prev, {
         id: Date.now().toString(),
-        message: error.message || 'Failed to complete OAuth2 login',
+        message: error.message || 'Failed to initiate OAuth2 login',
         type: 'error',
         duration: 5000,
       }]);
-      throw error;
     }
-  };
-
-  // Common token handling for both login types
-  const handleTokenResponse = async (tokenData: any) => {
-    if (DEBUG) console.log('Token received:', tokenData);
-
-    const expiresInDays = rememberMe ? 365 : 0;
-    setCookie('token', tokenData.access_token, expiresInDays);
-
-    // Get user info from token
-    const user = await fetchUserInfo(tokenData.access_token);
-    localStorage.setItem('user', JSON.stringify(user));
-
-    setAuth({
-      user: user,
-      token: tokenData.access_token,
-      isLoading: false,
-      isAuthenticated: true,
-    });
-
-    axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${tokenData.access_token}`;
-    queryClient.invalidateQueries({ queryKey: ['user'] });
-
-    if (user.preferredKeyboard) {
-      setPreferredKeyboard(user.preferredKeyboard);
-    }
-
-    setToasts(prev => [...prev, {
-      id: Date.now().toString(),
-      message: 'Login successful!',
-      type: 'success',
-      duration: 3000,
-    }]);
   };
 
   const registerMutation = useMutation({
@@ -340,7 +424,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return response.data;
     },
     onSuccess: async (_, variables) => {
-      // After successful registration, automatically log the user in
       await login({
         identifier: variables.username,
         password: variables.password
@@ -359,10 +442,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateKeyboardMutation = useMutation({
     mutationFn: async (keyboard: 'Casio' | 'Midiplus') => {
       const userId = auth.user?.id;
+          console.log('Making keyboard update request for user:', userId);
+    console.log('axiosInstance defaults:', axiosInstance.defaults.headers);
       const response = await axiosInstance.put(
         `${authApiUrl}/api/auth/${userId}`,
         { preferredKeyboard: keyboard },
-        { withCredentials: true }
+      {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
       );
       return response.data;
     },
@@ -408,7 +498,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+      refreshTimeoutRef.current = null;
+    }
+
+    retryCountRef.current = 0;
+
     deleteCookie('token');
+    deleteCookie('refresh_token');
     localStorage.removeItem('user');
     sessionStorage.removeItem('code_verifier');
     sessionStorage.removeItem('oauth_state');
@@ -426,7 +524,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToasts(prev => [...prev, {
       id: Date.now().toString(),
       message: 'Logged out successfully',
-      type: 'info',
+      type: 'success',
       duration: 3000,
     }]);
   };

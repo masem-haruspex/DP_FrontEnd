@@ -6,7 +6,7 @@ const DEBUG_PREFIX = '[RoomService]';
 const PREFIX = "http://localhost:8082/api";
 
 const debugLog = (message: string, data?: any) => {
-	const DEBUG = false;
+	const DEBUG = true;
 
 	if (DEBUG) {
 		const timestamp = new Date().toISOString();
@@ -42,7 +42,19 @@ export const RoomService = {
 	async joinRoom(code: string, userId: string, password?: string): Promise<any> {
 		debugLog('joinRoom: Starting request', { code, userId, hasPassword: !!password });
 		try {
-			const response = await api.post(`${PREFIX}/rooms/${code}/join`, { userId, password });
+			const headers: any = {
+				'X-User-ID': userId
+			};
+
+			const token = localStorage.getItem('token');
+			if (token) {
+				headers['Authorization'] = `Bearer ${token}`;
+			}
+
+			const response = await api.post(`${PREFIX}/rooms/${code}/join`,
+				{ userId, password },
+				{ headers }
+			);
 			debugLog('joinRoom: Success', { code, userId });
 			return response.data;
 		} catch (error) {
@@ -51,20 +63,20 @@ export const RoomService = {
 		}
 	},
 
-	async leaveRoom(code: string, userId: string): Promise<void> {
-		debugLog('leaveRoom: Starting request', { code, userId });
-		try {
-			await api.post(`${PREFIX}/rooms/${code}/leave`, null, {
-				headers: {
-					'X-User-ID': userId
-				}
-			});
-			debugLog('leaveRoom: Success', { code, userId });
-		} catch (error) {
-			debugLog('leaveRoom: Error', error);
-			throw error;
-		}
-	},
+	//async leaveRoom(code: string, userId: string): Promise<void> {
+	//	debugLog('leaveRoom: Starting request', { code, userId });
+	//	try {
+	//		await api.post(`${PREFIX}/rooms/${code}/leave`, null, {
+	//			headers: {
+	//				'X-User-ID': userId
+	//			}
+	//		});
+	//		debugLog('leaveRoom: Success', { code, userId });
+	//	} catch (error) {
+	//		debugLog('leaveRoom: Error', error);
+	//		throw error;
+	//	}
+	//},
 
 	async getRoom(code: string): Promise<Room> {
 		debugLog('getRoom: Starting request', { code });
@@ -78,17 +90,17 @@ export const RoomService = {
 		}
 	},
 
-async getRoomParticipants(code: string): Promise<any[]> {
-  debugLog('getRoomParticipants: Starting request', { code });
-  try {
-    const response = await api.get<any[]>(`${PREFIX}/rooms/${code}/participants`);
-    debugLog('getRoomParticipants: Success', { participantCount: response.data.length });
-    return response.data;
-  } catch (error) {
-    debugLog('getRoomParticipants: Error', error);
-    throw error;
-  }
-},
+	async getRoomParticipants(code: string): Promise<any[]> {
+		debugLog('getRoomParticipants: Starting request', { code });
+		try {
+			const response = await api.get<any[]>(`${PREFIX}/rooms/${code}/participants`);
+			debugLog('getRoomParticipants: Success', { participantCount: response.data.length });
+			return response.data;
+		} catch (error) {
+			debugLog('getRoomParticipants: Error', error);
+			throw error;
+		}
+	},
 
 	async deleteRoom(roomId: string, ownerId: string): Promise<void> {
 		debugLog('deleteRoom: Starting request', { roomId, ownerId });

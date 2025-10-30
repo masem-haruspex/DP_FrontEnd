@@ -4,13 +4,14 @@ import { useAtom } from 'jotai';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../Auth/AuthContext';
 import { protectedRouteAttemptAtom, loginNeededModalAtom } from '../atoms/auth';
-import { CreateRoomSchema, type CreateRoomData, type Room } from '../Multiplayer/Room';
+import { CreateRoomSchema, type CreateRoomData } from '../Multiplayer/Room';
 import styles from './MultiplayerMenu.module.scss';
 import * as z from 'zod';
 import { RoomService } from '../Multiplayer/RoomService';
 import { toastsAtom } from '../atoms/toast';
+import { guestIdAtom } from '../atoms/auth';
 
-type ModalView = 'main' | 'host' | 'room-created';
+type ModalView = 'main' | 'host';
 
 interface MultiplayerMenuProps {
   onBack: () => void;
@@ -22,16 +23,15 @@ export default function MultiplayerMenu({ onBack, onRoomCreated }: MultiplayerMe
   const [roomCode, setRoomCode] = useState('');
   const [roomPassword, setRoomPassword] = useState('');
   const [currentView, setCurrentView] = useState<ModalView>('main');
-  const [createdRoom, setCreatedRoom] = useState<Room | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [createRoomError, setCreateRoomError] = useState<string | null>(null);
 
   const { isAuthenticated, user } = useAuth();
   const [, setProtectedRouteAttempt] = useAtom(protectedRouteAttemptAtom);
   const [, setShowLoginNeededModal] = useAtom(loginNeededModalAtom);
+  const [guestId] = useAtom(guestIdAtom);
 
   const [hostForm, setHostForm] = useState<CreateRoomData>({
-    name: '',
     isPrivate: false,
     password: '',
     maxParticipants: 2
@@ -39,11 +39,20 @@ export default function MultiplayerMenu({ onBack, onRoomCreated }: MultiplayerMe
 
   const handleJoinRoom = async () => {
     try {
-      if (!user) {
-        return;
-      }
+       const userId = user?.id || guestId;
 
-      await RoomService.joinRoom(roomCode, user.id, roomPassword || undefined);
+    if (!userId) {
+      setToasts(prev => [...prev, {
+        id: Date.now().toString(),
+        message: 'Unable to join room',
+        submessage: 'Please try refreshing the page',
+        type: 'error',
+        duration: 5000,
+      }]);
+      return;
+    }
+
+      await RoomService.joinRoom(roomCode, userId, roomPassword || undefined);
 
       setToasts(prev => [...prev, {
         id: Date.now().toString(),
@@ -68,15 +77,15 @@ export default function MultiplayerMenu({ onBack, onRoomCreated }: MultiplayerMe
       } else if (error.response?.status === 401) {
         errorMessage = 'Invalid password';
         submessage = 'Please check the room password';
+      }else{
+        setToasts(prev => [...prev, {
+          id: Date.now().toString(),
+          message: errorMessage,
+          submessage,
+          type: 'error',
+          duration: 5000,
+        }]);
       }
-
-      setToasts(prev => [...prev, {
-        id: Date.now().toString(),
-        message: errorMessage,
-        submessage,
-        type: 'error',
-        duration: 5000,
-      }]);
     }
   };
 
@@ -94,18 +103,8 @@ export default function MultiplayerMenu({ onBack, onRoomCreated }: MultiplayerMe
       setIsCreating(true);
       setCreateRoomError(null);
 
-      setToasts(prev => [...prev, {
-        id: Date.now().toString(),
-        message: 'Creating room...',
-        type: 'info',
-        duration: 2000,
-      }]);
-
       const validatedData = CreateRoomSchema.parse(hostForm);
       const roomData = await RoomService.createRoom(user!.id, validatedData);
-
-      setCreatedRoom(roomData);
-      setCurrentView('room-created');
 
       setToasts(prev => [...prev, {
         id: Date.now().toString(),
@@ -114,9 +113,11 @@ export default function MultiplayerMenu({ onBack, onRoomCreated }: MultiplayerMe
         type: 'success',
         duration: 5000,
       }]);
-      onRoomCreated(createdRoom!.code);
+
+      onRoomCreated(roomData.code);
 
     } catch (error) {
+      console.error(error);
       if (error instanceof z.ZodError) {
         setCreateRoomError(error.issues[0].message);
       } else {
@@ -126,7 +127,7 @@ export default function MultiplayerMenu({ onBack, onRoomCreated }: MultiplayerMe
       setToasts(prev => [...prev, {
         id: Date.now().toString(),
         message: 'Failed to create room',
-        submessage: 'Please try again',
+        submessage: 'Please try again later',
         type: 'error',
         duration: 5000,
       }]);
@@ -139,22 +140,9 @@ export default function MultiplayerMenu({ onBack, onRoomCreated }: MultiplayerMe
     setCurrentView('main');
     setCreateRoomError(null);
     setHostForm({
-      name: '',
       isPrivate: false,
       maxParticipants: 2
     });
-  };
-
-  const handleBackToHost = () => {
-    setCurrentView('host');
-    setCreatedRoom(null);
-  };
-
-  const handleStartGame = () => {
-    if (createdRoom) {
-      console.log('Start game clicked for room:', createdRoom);
-      onRoomCreated(createdRoom.code);
-    }
   };
 
   const renderMainView = () => (
@@ -206,159 +194,107 @@ export default function MultiplayerMenu({ onBack, onRoomCreated }: MultiplayerMe
   );
 
   const renderHostView = () => (
-    <motion.div
-      key="host"
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      transition={{ duration: 0.2 }}
-    >
-      <div className={styles.form}>
-        <div className={styles.inputGroup}>
-          <label className={styles.label}>Room Name</label>
+  <motion.div
+    key="host"
+    initial={{ opacity: 0, x: 20 }}
+    animate={{ opacity: 1, x: 0 }}
+    exit={{ opacity: 0, x: -20 }}
+    transition={{ duration: 0.2 }}
+  >
+    <div className={styles.form}>
+
+      <div className={styles.inputGroup}>
+        <label className={styles.checkboxLabel}>
           <input
-            type="text"
+            type="checkbox"
+            checked={hostForm.isPrivate}
+            onChange={(e) => setHostForm(prev => ({ ...prev, isPrivate: e.target.checked }))}
+            className={styles.checkbox}
+          />
+          Private Room
+        </label>
+      </div>
+
+      {hostForm.isPrivate && (
+        <div className={styles.inputGroup}>
+          <label className={styles.label}>Room Password</label>
+          <input
+            type="password"
             className={styles.input}
-            value={hostForm.name}
-            onChange={(e) => setHostForm(prev => ({ ...prev, name: e.target.value }))}
-            placeholder="Enter room name"
-            maxLength={100}
-            required
+            value={hostForm.password}
+            onChange={(e) => setHostForm(prev => ({ ...prev, password: e.target.value }))}
+            placeholder="Enter room password"
           />
         </div>
+      )}
 
-        <div className={styles.inputGroup}>
-          <label className={styles.checkboxLabel}>
-            <input
-              type="checkbox"
-              checked={hostForm.isPrivate}
-              onChange={(e) => setHostForm(prev => ({ ...prev, isPrivate: e.target.checked }))}
-              className={styles.checkbox}
-            />
-            Private Room
-          </label>
-        </div>
-
-        {hostForm.isPrivate && (
-          <div className={styles.inputGroup}>
-            <label className={styles.label}>Room Password</label>
-            <input
-              type="password"
-              className={styles.input}
-              value={hostForm.password}
-              onChange={(e) => setHostForm(prev => ({ ...prev, password: e.target.value }))}
-              placeholder="Enter room password"
-            />
-          </div>
-        )}
-
-        <div className={styles.inputGroup}>
-          <label className={styles.label}>Max Participants</label>
-          <input
-            type="number"
-            className={styles.input}
-            value={hostForm.maxParticipants}
-            onChange={(e) => setHostForm(prev => ({
-              ...prev,
-              maxParticipants: Math.min(10, Math.max(2, parseInt(e.target.value) || 2))
-            }))}
-            min={2}
-            max={10}
-            required
-          />
-        </div>
-
-        {createRoomError && (
-          <div className={styles.errorMessage}>
-            {createRoomError}
-          </div>
-        )}
-
-        <div className={styles.actionButtons}>
+      <div className={styles.inputGroup}>
+        <label className={styles.label}>Max Participants</label>
+        <div className={styles.stepperContainer}>
           <button
             type="button"
-            className={`${styles.actionButton} ${styles.create}`}
-            onClick={handleCreateRoom}
-            disabled={isCreating || !hostForm.name.trim()}
+            className={styles.stepperButton}
+            onClick={() => {
+              setHostForm(prev => ({
+                ...prev,
+                maxParticipants: Math.max(2, prev.maxParticipants - 1)
+              }));
+            }}
+            disabled={hostForm.maxParticipants <= 2}
           >
-            {isCreating ? 'Creating...' : 'Create Room'}
+            −
           </button>
+          <div className={styles.stepperValue}>
+            {hostForm.maxParticipants}
+          </div>
           <button
             type="button"
-            className={`${styles.actionButton} ${styles.back}`}
-            onClick={handleBackToMain}
-            disabled={isCreating}
+            className={styles.stepperButton}
+            onClick={() => {
+              setHostForm(prev => ({
+                ...prev,
+                maxParticipants: Math.min(10, prev.maxParticipants + 1)
+              }));
+            }}
+            disabled={hostForm.maxParticipants >= 10}
           >
-            Back
+            +
           </button>
         </div>
       </div>
-    </motion.div>
-  );
 
-  const renderRoomCreatedView = () => (
-    <motion.div
-      key="room-created"
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      transition={{ duration: 0.2 }}
-    >
-      <div className={styles.roomCreated}>
-
-        {createdRoom && (
-          <div className={styles.roomDetails}>
-            <div className={styles.roomDetail}>
-              <span className={styles.detailLabel}>Room Name:</span>
-              <span className={styles.detailValue}>{createdRoom.name}</span>
-            </div>
-            <div className={styles.roomDetail}>
-              <span className={styles.detailLabel}>Room Code:</span>
-              <span className={styles.detailValue}>{createdRoom.code}</span>
-            </div>
-            <div className={styles.roomDetail}>
-              <span className={styles.detailLabel}>Privacy:</span>
-              <span className={styles.detailValue}>
-                {createdRoom.isPrivate ? 'Private' : 'Public'}
-              </span>
-            </div>
-            <div className={styles.roomDetail}>
-              <span className={styles.detailLabel}>Max Participants:</span>
-              <span className={styles.detailValue}>{createdRoom.maxParticipants}</span>
-            </div>
-            <div className={styles.roomDetail}>
-              <span className={styles.detailLabel}>Created:</span>
-              <span className={styles.detailValue}>
-                {new Date(createdRoom.createdAt).toLocaleString()}
-              </span>
-            </div>
-          </div>
-        )}
-
-        <div className={styles.roomActions}>
-          <button
-            className={`${styles.actionButton} ${styles.start}`}
-            onClick={handleStartGame}
-          >
-            Start Game
-          </button>
-          <button
-            className={`${styles.actionButton} ${styles.back}`}
-            onClick={handleBackToHost}
-          >
-            Back to Host
-          </button>
+      {createRoomError && (
+        <div className={styles.errorMessage}>
+          {createRoomError}
         </div>
+      )}
+
+      <div className={styles.actionButtons}>
+        <button
+          type="button"
+          className={`${styles.actionButton} ${styles.create}`}
+          onClick={handleCreateRoom}
+          disabled={isCreating}
+        >
+          {isCreating ? 'Creating...' : 'Create Room'}
+        </button>
+        <button
+          type="button"
+          className={`${styles.actionButton} ${styles.back}`}
+          onClick={handleBackToMain}
+          disabled={isCreating}
+        >
+          Back
+        </button>
       </div>
-    </motion.div>
-  );
+    </div>
+  </motion.div>
+);
 
   const getModalTitle = () => {
     switch (currentView) {
       case 'host':
         return 'Host Room';
-      case 'room-created':
-        return 'Room Created';
       default:
         return 'Multiplayer';
     }
@@ -371,7 +307,6 @@ export default function MultiplayerMenu({ onBack, onRoomCreated }: MultiplayerMe
       <AnimatePresence mode="wait">
         {currentView === 'main' && renderMainView()}
         {currentView === 'host' && renderHostView()}
-        {currentView === 'room-created' && renderRoomCreatedView()}
       </AnimatePresence>
 
       {currentView === 'main' && (

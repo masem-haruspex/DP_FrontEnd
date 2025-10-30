@@ -1,4 +1,4 @@
-// components/AudioControls/AudioControlsPanel.tsx
+// AudioControls/AudioControlsPanel.tsx
 import { useAtom } from 'jotai';
 import {
   type AudioSettings,
@@ -12,18 +12,15 @@ interface AudioControlsPanelProps {
   settings: AudioSettings;
   onSettingsChange?: (settings: AudioSettings) => void;
   className?: string;
-  showTitle?: boolean;
-  mode?: 'singleplayer' | 'multiplayer'; // Add mode prop
+  mode?: 'singleplayer' | 'multiplayer'; 
 }
 
 export default function AudioControlsPanel({
   settings,
   onSettingsChange,
   className = '',
-  showTitle = false,
-  mode = 'singleplayer' // Default to singleplayer
+  mode = 'singleplayer' 
 }: AudioControlsPanelProps) {
-  // Choose the correct updater based on mode
   const updaterAtom = mode === 'multiplayer'
     ? updateMultiplayerAudioSettingAtom
     : updateSinglePlayerAudioSettingAtom;
@@ -31,10 +28,8 @@ export default function AudioControlsPanel({
   const [, updateSetting] = useAtom(updaterAtom);
 
   const handleSettingChange = (setting: keyof AudioSettings, value: number) => {
-    // Update the audio effects via Jotai
     updateSetting({ setting, value });
 
-    // Notify parent component if provided
     if (onSettingsChange) {
       const newSettings = {
         ...settings,
@@ -44,7 +39,6 @@ export default function AudioControlsPanel({
     }
   };
 
-  // ... rest of the component remains the same
   const formatPercentage = (value: number): string => `${(value * 100).toFixed(0)}%`;
   const formatEQ = (value: number): string => `${(value * 100).toFixed(0)}%`;
 
@@ -61,7 +55,6 @@ export default function AudioControlsPanel({
 
   return (
     <div className={`${styles.controlsPanel} ${className}`}>
-      {showTitle && <h3>Audio Effects</h3>}
       {controlConfigs.map((config) => (
         <AudioControlSlider
           key={config.key}

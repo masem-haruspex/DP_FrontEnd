@@ -23,231 +23,231 @@ export interface RoomEvent {
 }
 
 export class WebSocketService {
-	  private stompClient: Stomp.Client | null = null;
-  private subscriptions: Map<string, Stomp.Subscription> = new Map();
-  private messageHandlers: Map<string, ((data: any) => void)[]> = new Map();
-  private isConnected: boolean = false;
-  private connectionPromise: Promise<void> | null = null;
-  private reconnectAttempts: number = 0;
-  private maxReconnectAttempts: number = 5;
-  private reconnectTimeout: NodeJS.Timeout | null = null;
+	private stompClient: Stomp.Client | null = null;
+	private subscriptions: Map<string, Stomp.Subscription> = new Map();
+	private messageHandlers: Map<string, ((data: any) => void)[]> = new Map();
+	private isConnected: boolean = false;
+	private connectionPromise: Promise<void> | null = null;
+	private reconnectAttempts: number = 0;
+	private maxReconnectAttempts: number = 5;
+	private reconnectTimeout: NodeJS.Timeout | null = null;
 
 	private userId: string | null = null;
 	private token: string | null = null;
 	private currentRoomCode: string | null = null;
 
-	  public connect(roomCode: string, userId: string, token: string): Promise<void> {
-    if (this.connectionPromise) {
-      if (DEBUG) console.log(`[WebSocketService] Connection promise already exists, returning existing promise`);
-      return this.connectionPromise;
-    }
+	public connect(roomCode: string, userId: string, token: string | null): Promise<void> {
+		if (this.connectionPromise) {
+			if (DEBUG) console.log(`[WebSocketService] Connection promise already exists, returning existing promise`);
+			return this.connectionPromise;
+		}
 
-    if (DEBUG) console.log(`[WebSocketService] Starting connection to room: ${roomCode}, user: ${userId}`);
+		if (DEBUG) console.log(`[WebSocketService] Starting connection to room: ${roomCode}, user: ${userId}`);
 
-    this.userId = userId;
-    this.token = token;
-    this.currentRoomCode = roomCode;
+		this.userId = userId;
+		this.token = token;
+		this.currentRoomCode = roomCode;
 
-    this.connectionPromise = new Promise((resolve, reject) => {
-      const socket = new SockJS('http://localhost:8083/ws');
-      this.stompClient = Stomp.over(socket);
-      this.stompClient.debug = DEBUG ? console.log : () => {};
+		this.connectionPromise = new Promise((resolve, reject) => {
+			const socket = new SockJS('http://localhost:8083/ws');
+			this.stompClient = Stomp.over(socket);
+			this.stompClient.debug = DEBUG ? console.log : () => {};
 
-      if (!DEBUG) {
-        (socket as any).onmessage = () => {};
-        (socket as any).onerror = () => {};
-      }
+			if (!DEBUG) {
+				(socket as any).onmessage = () => {};
+				(socket as any).onerror = () => {};
+			}
 
-      const headers = {
-        'X-User-ID': userId,
-        'Authorization': `Bearer ${token}`,
-        'roomCode': roomCode
-      };
+			const headers = {
+				'X-User-ID': userId,
+				'Authorization': `Bearer ${token}`,
+				'roomCode': roomCode
+			};
 
-      socket.onclose = (event) => {
-        if (DEBUG) console.log(`[WebSocketService] WebSocket closed:`, event);
-        this.handleConnectionLost();
-      };
+			socket.onclose = (event) => {
+				if (DEBUG) console.log(`[WebSocketService] WebSocket closed:`, event);
+				this.handleConnectionLost();
+			};
 
-      socket.onerror = (error) => {
-        if (DEBUG) console.error(`[WebSocketService] WebSocket error:`, error);
-        this.handleConnectionError();
-      };
+			socket.onerror = (error) => {
+				if (DEBUG) console.error(`[WebSocketService] WebSocket error:`, error);
+				this.handleConnectionError();
+			};
 
-      this.stompClient.connect(headers,
-        () => {
-          if (DEBUG) console.log(`[WebSocketService] WebSocket connected successfully to room: ${roomCode}`);
-          this.isConnected = true;
-          this.reconnectAttempts = 0; 
+			this.stompClient.connect(headers,
+				() => {
+					if (DEBUG) console.log(`[WebSocketService] WebSocket connected successfully to room: ${roomCode}`);
+					this.isConnected = true;
+					this.reconnectAttempts = 0; 
 
-          this.subscribeToRoom(roomCode);
-          this.subscribeToUser(userId);
+					this.subscribeToRoom(roomCode);
+					this.subscribeToUser(userId);
 
-          if (DEBUG) console.log(`[WebSocketService] Sending join message to room: ${roomCode}`);
+					if (DEBUG) console.log(`[WebSocketService] Sending join message to room: ${roomCode}`);
 
-          const joinHeaders = {
-            'X-User-ID': this.userId!,
-            'Authorization': `Bearer ${this.token}`
-          };
-          this.stompClient?.send(`/app/rooms/${roomCode}/join`, joinHeaders, JSON.stringify({}));
+					const joinHeaders = {
+						'X-User-ID': this.userId!,
+						'Authorization': `Bearer ${this.token}`
+					};
+					this.stompClient?.send(`/app/rooms/${roomCode}/join`, joinHeaders, JSON.stringify({}));
 
-          this.emitConnectionEvent('CONNECTION_ESTABLISHED', {
-            roomCode,
-            userId,
-            timestamp: Date.now()
-          });
+					this.emitConnectionEvent('CONNECTION_ESTABLISHED', {
+						roomCode,
+						userId,
+						timestamp: Date.now()
+					});
 
-          resolve();
-        },
-        (error: any) => {
-          if (DEBUG) console.error(`[WebSocketService] WebSocket connection failed:`, error);
-          this.isConnected = false;
-          this.connectionPromise = null;
+					resolve();
+				},
+				(error: any) => {
+					if (DEBUG) console.error(`[WebSocketService] WebSocket connection failed:`, error);
+					this.isConnected = false;
+					this.connectionPromise = null;
 
-          this.emitConnectionEvent('CONNECTION_FAILED', {
-            error: error?.toString(),
-            roomCode,
-            timestamp: Date.now()
-          });
+					this.emitConnectionEvent('CONNECTION_FAILED', {
+						error: error?.toString(),
+						roomCode,
+						timestamp: Date.now()
+					});
 
-          reject(error);
-        }
-      );
+					reject(error);
+				}
+			);
 
-      setTimeout(() => {
-        if (!this.isConnected) {
-          if (DEBUG) console.error(`[WebSocketService] WebSocket connection timeout after 10 seconds`);
+			setTimeout(() => {
+				if (!this.isConnected) {
+					if (DEBUG) console.error(`[WebSocketService] WebSocket connection timeout after 10 seconds`);
 
-          this.emitConnectionEvent('CONNECTION_TIMEOUT', {
-            roomCode,
-            timestamp: Date.now()
-          });
+					this.emitConnectionEvent('CONNECTION_TIMEOUT', {
+						roomCode,
+						timestamp: Date.now()
+					});
 
-          reject(new Error('WebSocket connection timeout'));
-          this.connectionPromise = null;
-        }
-      }, 10000);
-    });
+					reject(new Error('WebSocket connection timeout'));
+					this.connectionPromise = null;
+				}
+			}, 10000);
+		});
 
-    return this.connectionPromise;
-  }
+		return this.connectionPromise;
+	}
 
-	  private handleConnectionLost() {
-    if (DEBUG) console.log(`[WebSocketService] Connection lost`);
+	private handleConnectionLost() {
+		if (DEBUG) console.log(`[WebSocketService] Connection lost`);
 
-    this.isConnected = false;
+		this.isConnected = false;
 
-    this.emitConnectionEvent('CONNECTION_LOST', {
-      roomCode: this.currentRoomCode,
-      userId: this.userId,
-      timestamp: Date.now()
-    });
+		this.emitConnectionEvent('CONNECTION_LOST', {
+			roomCode: this.currentRoomCode,
+			userId: this.userId,
+			timestamp: Date.now()
+		});
 
-    this.attemptReconnection();
-  }
+		this.attemptReconnection();
+	}
 
-  private handleConnectionError() {
-    if (DEBUG) console.log(`[WebSocketService] Connection error`);
+	private handleConnectionError() {
+		if (DEBUG) console.log(`[WebSocketService] Connection error`);
 
-    this.emitConnectionEvent('CONNECTION_ERROR', {
-      roomCode: this.currentRoomCode,
-      userId: this.userId,
-      timestamp: Date.now()
-    });
-  }
+		this.emitConnectionEvent('CONNECTION_ERROR', {
+			roomCode: this.currentRoomCode,
+			userId: this.userId,
+			timestamp: Date.now()
+		});
+	}
 
-  private attemptReconnection() {
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      if (DEBUG) console.log(`[WebSocketService] Max reconnection attempts reached`);
+	private attemptReconnection() {
+		if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+			if (DEBUG) console.log(`[WebSocketService] Max reconnection attempts reached`);
 
-      this.emitConnectionEvent('CONNECTION_PERMANENTLY_LOST', {
-        roomCode: this.currentRoomCode,
-        userId: this.userId,
-        timestamp: Date.now()
-      });
+			this.emitConnectionEvent('CONNECTION_PERMANENTLY_LOST', {
+				roomCode: this.currentRoomCode,
+				userId: this.userId,
+				timestamp: Date.now()
+			});
 
-      return;
-    }
+			return;
+		}
 
-    this.reconnectAttempts++;
-    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30 * 1000); 
+		this.reconnectAttempts++;
+		const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30 * 1000); 
 
-    if (DEBUG) console.log(`[WebSocketService] Attempting reconnection ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms`);
+		if (DEBUG) console.log(`[WebSocketService] Attempting reconnection ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms`);
 
-    this.emitConnectionEvent('RECONNECTING', {
-      roomCode: this.currentRoomCode,
-      userId: this.userId,
-      attempt: this.reconnectAttempts,
-      maxAttempts: this.maxReconnectAttempts,
-      nextAttemptIn: delay,
-      timestamp: Date.now()
-    });
+		this.emitConnectionEvent('RECONNECTING', {
+			roomCode: this.currentRoomCode,
+			userId: this.userId,
+			attempt: this.reconnectAttempts,
+			maxAttempts: this.maxReconnectAttempts,
+			nextAttemptIn: delay,
+			timestamp: Date.now()
+		});
 
-    this.reconnectTimeout = setTimeout(() => {
-      if (this.currentRoomCode && this.userId && this.token) {
-        this.connect(this.currentRoomCode, this.userId, this.token)
-          .then(() => {
-            if (DEBUG) console.log(`[WebSocketService] Reconnection successful`);
+		this.reconnectTimeout = setTimeout(() => {
+			if (this.currentRoomCode && this.userId && this.token) {
+				this.connect(this.currentRoomCode, this.userId, this.token)
+					.then(() => {
+						if (DEBUG) console.log(`[WebSocketService] Reconnection successful`);
 
-            this.emitConnectionEvent('RECONNECTED', {
-              roomCode: this.currentRoomCode,
-              userId: this.userId,
-              timestamp: Date.now()
-            });
-          })
-          .catch((error) => {
-            if (DEBUG) console.error(`[WebSocketService] Reconnection failed:`, error);
+						this.emitConnectionEvent('RECONNECTED', {
+							roomCode: this.currentRoomCode,
+							userId: this.userId,
+							timestamp: Date.now()
+						});
+					})
+					.catch((error) => {
+						if (DEBUG) console.error(`[WebSocketService] Reconnection failed:`, error);
 
-            this.emitConnectionEvent('RECONNECTION_FAILED', {
-              roomCode: this.currentRoomCode,
-              userId: this.userId,
-              attempt: this.reconnectAttempts,
-              error: error?.toString(),
-              timestamp: Date.now()
-            });
-          });
-      }
-    }, delay);
-  }
+						this.emitConnectionEvent('RECONNECTION_FAILED', {
+							roomCode: this.currentRoomCode,
+							userId: this.userId,
+							attempt: this.reconnectAttempts,
+							error: error?.toString(),
+							timestamp: Date.now()
+						});
+					});
+			}
+		}, delay);
+	}
 
-  private emitConnectionEvent(eventType: string, data: any) {
-    if (DEBUG) console.log(`[WebSocketService] Emitting connection event: ${eventType}`, data);
+	private emitConnectionEvent(eventType: string, data: any) {
+		if (DEBUG) console.log(`[WebSocketService] Emitting connection event: ${eventType}`, data);
 
-    const handlers = this.messageHandlers.get(eventType);
-    if (handlers) {
-      handlers.forEach(handler => handler(data));
-    }
+		const handlers = this.messageHandlers.get(eventType);
+		if (handlers) {
+			handlers.forEach(handler => handler(data));
+		}
 
-    const connectionHandlers = this.messageHandlers.get('CONNECTION_EVENT');
-    if (connectionHandlers) {
-      connectionHandlers.forEach(handler => handler({ type: eventType, ...data }));
-    }
-  }
+		const connectionHandlers = this.messageHandlers.get('CONNECTION_EVENT');
+		if (connectionHandlers) {
+			connectionHandlers.forEach(handler => handler({ type: eventType, ...data }));
+		}
+	}
 
-  public getConnectionStatus(): { isConnected: boolean; roomCode: string | null; userId: string | null } {
-    return {
-      isConnected: this.isConnected,
-      roomCode: this.currentRoomCode,
-      userId: this.userId
-    };
-  }
+	public getConnectionStatus(): { isConnected: boolean; roomCode: string | null; userId: string | null } {
+		return {
+			isConnected: this.isConnected,
+			roomCode: this.currentRoomCode,
+			userId: this.userId
+		};
+	}
 
-  public async reconnect(): Promise<void> {
-    if (DEBUG) console.log(`[WebSocketService] Manual reconnection requested`);
+	public async reconnect(): Promise<void> {
+		if (DEBUG) console.log(`[WebSocketService] Manual reconnection requested`);
 
-    if (this.reconnectTimeout) {
-      clearTimeout(this.reconnectTimeout);
-      this.reconnectTimeout = null;
-    }
+		if (this.reconnectTimeout) {
+			clearTimeout(this.reconnectTimeout);
+			this.reconnectTimeout = null;
+		}
 
-    this.reconnectAttempts = 0;
+		this.reconnectAttempts = 0;
 
-    if (this.currentRoomCode && this.userId && this.token) {
-      return this.connect(this.currentRoomCode, this.userId, this.token);
-    } else {
-      throw new Error('Cannot reconnect: missing connection parameters');
-    }
-  }
+		if (this.currentRoomCode && this.userId && this.token) {
+			return this.connect(this.currentRoomCode, this.userId, this.token);
+		} else {
+			throw new Error('Cannot reconnect: missing connection parameters');
+		}
+	}
 
 
 	private subscribeToRoom(roomCode: string): void {
@@ -402,18 +402,18 @@ export class WebSocketService {
 	public disconnect(): void {
 		if (DEBUG) console.log(`[WebSocketService] Disconnecting WebSocket. Active subscriptions: ${this.subscriptions.size}, Active handlers: ${this.messageHandlers.size}`);
 
-		    if (this.reconnectTimeout) {
-      clearTimeout(this.reconnectTimeout);
-      this.reconnectTimeout = null;
-    }
+		if (this.reconnectTimeout) {
+			clearTimeout(this.reconnectTimeout);
+			this.reconnectTimeout = null;
+		}
 
-    this.reconnectAttempts = 0;
+		this.reconnectAttempts = 0;
 
-    this.emitConnectionEvent('DISCONNECTED', {
-      roomCode: this.currentRoomCode,
-      userId: this.userId,
-      timestamp: Date.now()
-    });
+		this.emitConnectionEvent('DISCONNECTED', {
+			roomCode: this.currentRoomCode,
+			userId: this.userId,
+			timestamp: Date.now()
+		});
 
 		this.subscriptions.forEach((sub, key) => {
 			if (DEBUG) console.log(`[WebSocketService] Unsubscribing from: ${key}`);
@@ -461,5 +461,20 @@ export class WebSocketService {
 			if (DEBUG) console.log(`[WebSocketService] Total handler count: ${total}`);
 			return total;
 		}
+	}
+
+	public leaveRoom(roomCode: string): void {
+		if (!this.stompClient || !this.isConnected) return;
+
+		const headers = {
+			'X-User-ID': this.userId!,
+			'Authorization': `Bearer ${this.token}`
+		};
+
+		this.stompClient.send(
+			`/app/rooms/${roomCode}/leave`,
+			headers,
+			JSON.stringify({})
+		);
 	}
 }

@@ -22,10 +22,17 @@ export const MessagingService = {
   async sendMessage(userId: string, messageData: SendMessageData): Promise<Message> {
     debugLog('sendMessage: Starting request', { userId, messageData });
     try {
+      const headers: any = {
+        'X-User-ID': userId
+      };
+
+      const token = localStorage.getItem('token');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await api.post<Message>(`${PREFIX}/messages`, messageData, {
-        headers: {
-          'X-User-ID': userId
-        },
+        headers,
         withCredentials: true
       });
       debugLog('sendMessage: Success', { messageId: response.data.id });

@@ -25,7 +25,7 @@ export const deleteCookie = (name: string) => {
 };
 
 export const generateGuestId = (): string => {
-  return `guest_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+  return crypto.randomUUID();
 };
 
 export const getOrCreateGuestId = (): string => {

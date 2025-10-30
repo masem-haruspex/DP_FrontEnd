@@ -6,8 +6,6 @@ import { EffectComposer, Bloom } from '@react-three/postprocessing';
 
 interface MusicNoteProps {
     initialPosition: [number, number, number];
-    onExpired: () => void;
-    lifespan: number;
     glowColor?: string;
     glowIntensity?: number;
     gltf: any;
@@ -15,8 +13,6 @@ interface MusicNoteProps {
 
 export default function MusicNote({ 
     initialPosition, 
-    onExpired, 
-    lifespan, 
     glowColor = '#ffef00', 
     glowIntensity = 1,
     gltf 
@@ -67,11 +63,6 @@ export default function MusicNote({
         
         groupRef.current.rotation.z += Math.sin(swayPhase.current * 1.5) * 0.2 * delta;
     });
-
-    useEffect(() => {
-        const timer = setTimeout(() => onExpired(), lifespan);
-        return () => clearTimeout(timer);
-    }, [lifespan, onExpired]);
 
     return (
         <group ref={groupRef} position={initialPosition} scale={[0.5, 0.5, 0.5]} />

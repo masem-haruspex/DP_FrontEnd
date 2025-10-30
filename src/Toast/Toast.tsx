@@ -60,13 +60,6 @@ export default function Toast({ toast }: ToastProps) {
           )}
         </div>
 
-        <button
-          className={styles.closeButton}
-          onClick={handleClose}
-          aria-label="Close notification"
-        >
-          ✕
-        </button>
       </div>
 
       <div className={styles.progressBar} style={{ '--progress': `${progress}%` } as React.CSSProperties} />

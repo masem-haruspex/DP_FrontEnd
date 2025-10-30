@@ -3,14 +3,6 @@
 @use '../styles/mixins' as *;
 
 .toastContainer {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-sm;
-  pointer-events: none;
 }
 
 .toast {
@@ -21,13 +13,13 @@
   color: $twilight-purple;
   cursor: pointer;
   box-shadow: $shadow-heavy;
-  backdrop-filter: blur(20px) saturate(180%);
-  border: 2px solid rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px) saturate(150%);
+  border: 2px solid rgba(255, 255, 255, 0.75);
   position: relative;
   overflow: hidden;
-
-  // Magical card effect to match your design system
-  background: rgba(255, 255, 255, 0.75);
+  animation: toastEntrance 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  transform-origin: top right;
+  background: rgba(255, 255, 255, 0.7);
 
   &::before {
     content: '';
@@ -48,50 +40,38 @@
     animation: borderGlow 4s ease-in-out infinite alternate;
   }
 
-  // Type-specific magical gradients
+  // Type-specific inner glow & icon
   &.success {
     &::before {
       background: linear-gradient(45deg,
         rgba(#4caf50, 0.4),
-        rgba(#45a049, 0.4),
         rgba($starlight-blue, 0.3),
         rgba(#2e7d32, 0.4)
       );
     }
-
-    .toastIcon {
-      background: linear-gradient(45deg, #4caf50, #45a049);
-    }
+    .toastIcon { background: linear-gradient(45deg, #4caf50, #2e7d32); }
   }
 
   &.error {
     &::before {
       background: linear-gradient(45deg,
-        rgba(#f44336, 0.4),
+        rgba($magic-pink, 0.5),
         rgba(#d32f2f, 0.4),
-        rgba($magic-pink, 0.3),
         rgba(#b71c1c, 0.4)
       );
     }
-
-    .toastIcon {
-      background: linear-gradient(45deg, #f44336, #d32f2f);
-    }
+    .toastIcon { background: linear-gradient(45deg, $magic-pink, #d32f2f); }
   }
 
   &.warning {
     &::before {
       background: linear-gradient(45deg,
-        rgba(#ff9800, 0.4),
+        rgba($cosmic-gold, 0.5),
         rgba(#f57c00, 0.4),
-        rgba($cosmic-gold, 0.3),
         rgba(#e65100, 0.4)
       );
     }
-
-    .toastIcon {
-      background: linear-gradient(45deg, #ff9800, #f57c00);
-    }
+    .toastIcon { background: linear-gradient(45deg, $cosmic-gold, #f57c00); }
   }
 
   &.info {
@@ -99,14 +79,10 @@
       background: linear-gradient(45deg,
         rgba($starlight-blue, 0.4),
         rgba($galaxy-purple, 0.4),
-        rgba($magic-pink, 0.3),
-        rgba($twilight-purple, 0.4)
+        rgba($magic-pink, 0.3)
       );
     }
-
-    .toastIcon {
-      background: linear-gradient(45deg, $starlight-blue, $galaxy-purple);
-    }
+    .toastIcon { background: linear-gradient(45deg, $starlight-blue, $galaxy-purple); }
   }
 }
 
@@ -117,40 +93,35 @@
 }
 
 .toastIcon {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: $radius-full;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   color: white;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   font-weight: bold;
   box-shadow: $shadow-light;
+  font-family: 'Prompt', sans-serif;
 
-  // Icon symbols
   &::before {
-    content: '';
+    content: '?';
   }
 
-  .success &::before {
+  .success &::before { 
     content: '✓';
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
   }
-
-  .error &::before {
-    content: '!';
-  }
-
-  .warning &::before {
-    content: '⚠';
-  }
-
-  .info &::before {
-    content: 'i';
-    font-style: italic;
-    font-family: serif;
-  }
+  .error &::before { content: '!'; }
+  .warning &::before { content: '⚠'; }
+  .info &::before { content: 'i'; font-style: italic; }
 }
 
 .messageContainer {
@@ -161,25 +132,17 @@
 }
 
 .message {
-  font-weight: 600;
-  font-size: 0.95rem;
-  line-height: 1.4;
-  color: $twilight-purple;
-  font-family: 'AVFontimer Regular', sans-serif;
+  @include magical-text();
 }
 
 .submessage {
-  font-size: 0.85rem;
-  color: rgba($twilight-purple, 0.8);
+  font-size: 0.875rem;
+  color: rgba($twilight-purple, 0.85);
   line-height: 1.3;
   font-family: 'AVFontimer Regular', sans-serif;
 }
 
-.closeButton {
-  @include magical-close-button();
-}
-
-// Progress bar for auto-dismiss
+// Auto-dismiss progress bar (magical shimmer)
 .progressBar {
   position: absolute;
   bottom: 0;
@@ -188,6 +151,7 @@
   height: 3px;
   background: rgba($twilight-purple, 0.1);
   overflow: hidden;
+  border-radius: 0 0 2px 2px;
 
   &::after {
     content: '';
@@ -196,49 +160,58 @@
     left: 0;
     height: 100%;
     width: 100%;
-    background: linear-gradient(90deg, $magic-pink, $starlight-blue);
+    background: linear-gradient(90deg,
+      transparent,
+      rgba($magic-pink, 0.6),
+      rgba($starlight-blue, 0.6),
+      transparent
+    );
     transform: scaleX(1);
     transform-origin: left;
     animation: progressShrink linear forwards;
   }
 }
 
-@keyframes progressShrink {
-  to {
-    transform: scaleX(0);
-  }
-}
-
-// Magical entrance animation
+// Entrance animation (playful bounce + slide)
 @keyframes toastEntrance {
   0% {
     opacity: 0;
-    transform: translateX(100%) scale(0.8) rotate(5deg);
+    transform: translateX(100%) scale(0.85) rotate(3deg);
   }
   70% {
-    transform: translateX(-10px) scale(1.02) rotate(-2deg);
+    transform: translateX(-8px) scale(1.03) rotate(-1.5deg);
   }
   100% {
     opacity: 1;
-    transform: translateX(0) scale(1) rotate(0deg);
+    transform: translateX(0) scale(1) rotate(0);
   }
+}
+
+@keyframes progressShrink {
+  to { transform: scaleX(0); }
 }
 
 // Responsive
 @media (max-width: 480px) {
   .toastContainer {
-    top: 10px;
-    right: 10px;
-    left: 10px;
+    top: 12px;
+    right: 12px;
+    left: 12px;
   }
 
   .toast {
     min-width: auto;
-    width: 100%;
+    width: calc(100% - 24px);
     padding: $spacing-md;
   }
 
   .toastContent {
     gap: $spacing-sm;
+  }
+
+  .toastIcon {
+    width: 24px;
+    height: 24px;
+    font-size: 0.85rem;
   }
 }

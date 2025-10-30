@@ -5,24 +5,124 @@ import { MessagingService } from './MessagingService';
 import type { Message } from './Message';
 import styles from './ChatBox.module.scss';
 import { WebSocketService } from './WebSocketService';
+import { useAtom } from 'jotai';
+import { guestIdAtom } from '../atoms/auth';
 
 interface ChatBoxProps {
   roomCode: string;
   webSocketService: WebSocketService;
-  onFocusChange?: (isChatFocused: boolean) => void;
-  isFocused: boolean;
-  setIsFocused: any;
+  showUI: () => void;
 }
 
 const DEBUG = false;
 
-export default function ChatBox({ roomCode, webSocketService, onFocusChange, isFocused, setIsFocused }: ChatBoxProps) {
+export default function ChatBox({ roomCode, webSocketService, showUI }: ChatBoxProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [mutedUsers, setMutedUsers] = useState<Set<string>>(new Set());
   const { user } = useAuth();
+  const [guestId] = useAtom(guestIdAtom);
+  const currentUserId = user?.id || guestId;
+  const visibleMessages = messages.filter(message => !mutedUsers.has(message.userId));
+
+  const hideTimeoutRef = useRef<NodeJS.Timeout>(null);
+
+  const toggleMuteUser = (userId: string) => {
+    setMutedUsers(prev => {
+      const newMuted = new Set(prev);
+      if (newMuted.has(userId)) {
+        newMuted.delete(userId);
+      } else {
+        newMuted.add(userId);
+      }
+      return newMuted;
+    });
+  };
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+  const target = e.target as HTMLElement;
+  if (target.tagName === 'INPUT' && target !== inputRef.current) {
+    return;
+  }
+
+  if (e.key === 'Enter' && !isInputFocused && target !== inputRef.current) {
+    e.preventDefault();
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
+  }
+};
+
+  const loadMessages = async () => {
+    try {
+      if(DEBUG) console.log('Loading messages for room:', roomCode);
+      const roomMessages = await MessagingService.getRoomMessages(roomCode);
+      if(DEBUG) console.log('Loaded messages:', roomMessages);
+      setMessages(roomMessages);
+    } catch (error) {
+      console.error('Failed to load messages:', error);
+    }
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.trim()) return;
+
+    setIsLoading(true);
+    try {
+      if(DEBUG) console.log('Sending message:', { roomCode, content: newMessage.trim() });
+
+      const sentMessage = await MessagingService.sendMessage(currentUserId, {
+        roomCode,
+        content: newMessage.trim()
+      });
+
+      if(DEBUG) console.log('Message sent successfully:', sentMessage);
+
+      setNewMessage('');
+
+      setIsInputFocused(false);
+      inputRef.current?.blur();
+
+    } catch (error) {
+      console.error('Failed to send message:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFocus = () => {
+    setIsInputFocused(true);
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+    }
+  };
+
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  useEffect(() => {
+    const savedMutedUsers = localStorage.getItem(`mutedUsers_${roomCode}`);
+    if (savedMutedUsers) {
+      setMutedUsers(new Set(JSON.parse(savedMutedUsers)));
+    }
+  }, [roomCode]);
+
+  useEffect(() => {
+    localStorage.setItem(`mutedUsers_${roomCode}`, JSON.stringify([...mutedUsers]));
+  }, [mutedUsers, roomCode]);
 
   useEffect(() => {
     loadMessages();
@@ -42,109 +142,52 @@ export default function ChatBox({ roomCode, webSocketService, onFocusChange, isF
       };
 
       setMessages(prev => [...prev, newMessage]);
+      showUI();
     };
 
     webSocketService.on('CHAT_MESSAGE', handleChatMessage);
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Tab') {
-        e.preventDefault();
-        if (isFocused) {
-          inputRef.current?.blur();
-        } else {
-          inputRef.current?.focus();
-        }
-      }
-    };
 
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
       webSocketService.off('CHAT_MESSAGE', handleChatMessage);
       window.removeEventListener('keydown', handleKeyDown);
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+      }
     };
-  }, [roomCode, webSocketService, isFocused]);
+  }, [roomCode, webSocketService]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  useEffect(() => {
-    onFocusChange?.(isFocused);
-  }, [isFocused, onFocusChange]);
-
-  const loadMessages = async () => {
-    try {
-      if(DEBUG) console.log('Loading messages for room:', roomCode);
-      const roomMessages = await MessagingService.getRoomMessages(roomCode);
-      if(DEBUG) console.log('Loaded messages:', roomMessages);
-      setMessages(roomMessages);
-    } catch (error) {
-      console.error('Failed to load messages:', error);
-    }
-  };
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !user) return;
-
-    setIsLoading(true);
-    try {
-      if(DEBUG) console.log('Sending message:', { roomCode, content: newMessage.trim() });
-
-      const sentMessage = await MessagingService.sendMessage(user.id, {
-        roomCode,
-        content: newMessage.trim()
-      });
-
-      if(DEBUG) console.log('Message sent successfully:', sentMessage);
-
-      setNewMessage('');
-
-    } catch (error) {
-      console.error('Failed to send message:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleFocus = () => {
-    setIsFocused(true);
-  };
-
-  const handleBlur = () => {
-    setIsFocused(false);
-  };
-
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
   return (
     <div className={styles.chatBox}>
-
       <div className={styles.messagesContainer}>
-        {messages.length === 0 ? (
-          <div className={styles.noMessages}>No messages yet. Say something nice!</div>
+        {visibleMessages.length === 0 ? (
+          <div className={styles.noMessages}>Press Enter to chat</div>
         ) : (
-          messages.map((message) => (
+          visibleMessages.map((message) => (
             <div
               key={message.id}
               className={`${styles.message} ${
-                message.userId === user?.id ? styles.ownMessage : ''
+                message.userId === currentUserId ? styles.ownMessage : '' 
               }`}
             >
               <div className={styles.messageHeader}>
                 <span className={styles.username}>
-                  {message.userId === user?.id ? 'You' : (message.username || `User ${message.userId?.slice(0, 8)}`)}
+                  {message.userId === currentUserId ? 'You' : (message.username || `User ${message.userId?.slice(0, 8)}`)} {/* FIXED */}
                 </span>
+                {message.userId !== currentUserId && ( 
+                  <button
+                    onClick={() => toggleMuteUser(message.userId)}
+                    className={`${styles.muteButton} ${mutedUsers.has(message.userId) ? styles.muted : ''}`}
+                    title={mutedUsers.has(message.userId) ? 'Unmute user' : 'Mute user'}
+                  >
+                    {mutedUsers.has(message.userId) ? '🔇' : '🔊'}
+                  </button>
+                )}
                 <span className={styles.timestamp}>
                   {formatTime(message.sentAt)}
                 </span>
@@ -165,8 +208,7 @@ export default function ChatBox({ roomCode, webSocketService, onFocusChange, isF
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           onFocus={handleFocus}
-          onBlur={handleBlur}
-          placeholder="Type a message... (Tab to switch focus)"
+          placeholder="Type a message... (Enter to chat, Esc to close)"
           className={styles.messageInput}
           disabled={isLoading}
         />

@@ -184,6 +184,16 @@ index.js:120 Uncaught Error: Invalid argument not valid semver ('' received)
     at backendManager.js:1:14182
 --bug2--
 
+--bug3--
+fetchUserInfo	@	AuthContext.tsx:37
+Request URL
+http://localhost:8080/userinfo
+Request Method
+GET
+Status Code
+401 Unauthorized
+--bug3--
+
 TODO:
 Loading states - Spinners and Darken during submission
 Debug storage - Tokens in cookies, guest data in localStorage

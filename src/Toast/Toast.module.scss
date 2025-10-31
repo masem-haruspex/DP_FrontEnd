@@ -40,7 +40,6 @@
     animation: borderGlow 4s ease-in-out infinite alternate;
   }
 
-  // Type-specific inner glow & icon
   &.success {
     &::before {
       background: linear-gradient(45deg,
@@ -142,7 +141,6 @@
   font-family: 'AVFontimer Regular', sans-serif;
 }
 
-// Auto-dismiss progress bar (magical shimmer)
 .progressBar {
   position: absolute;
   bottom: 0;
@@ -172,7 +170,6 @@
   }
 }
 
-// Entrance animation (playful bounce + slide)
 @keyframes toastEntrance {
   0% {
     opacity: 0;
@@ -191,7 +188,6 @@
   to { transform: scaleX(0); }
 }
 
-// Responsive
 @media (max-width: 480px) {
   .toastContainer {
     top: 12px;

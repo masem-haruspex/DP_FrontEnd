@@ -34,7 +34,6 @@ export default function Camera({
       }
 
       if (reducedMotion) {
-        // Instant transition
         camera.position.set(...position);
         camera.rotation.set(...rotation);
         camera.updateMatrixWorld();
@@ -51,7 +50,6 @@ export default function Camera({
           z: camera.rotation.z.toFixed(3)
         });
       } else {
-        // Smooth transition
         startPositionRef.current.copy(camera.position);
         startRotationRef.current.copy(camera.rotation);
 
@@ -118,104 +116,7 @@ function easeInOutCubic(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
-//// Camera/Camera.tsx
-//import { useThree } from "@react-three/fiber";
-//import { useEffect, useRef } from "react";
-//import * as THREE from "three";
-//
-//const DEBUG = false;
-//
-//interface CameraProps {
-//  position?: [number, number, number];
-//  rotation?: [number, number, number];
-//  transitionDuration?: number;
-//}
-//
-//export default function Camera({
-//  position = [0, 0, 1],
-//  rotation = [0, 0, 0],
-//  transitionDuration = 2.0 * 1000 // 2 sec
-//}: CameraProps) {
-//  const { camera } = useThree();
-//  const animationRef = useRef<number>(null);
-//  const startPositionRef = useRef(new THREE.Vector3());
-//  const startRotationRef = useRef(new THREE.Euler());
-//  const targetPositionRef = useRef(new THREE.Vector3());
-//  const targetRotationRef = useRef(new THREE.Euler());
-//  const startTimeRef = useRef<number>(null);
-//
-//  useEffect(() => {
-//    if (camera instanceof THREE.PerspectiveCamera) {
-//      startPositionRef.current.copy(camera.position);
-//      startRotationRef.current.copy(camera.rotation);
-//
-//      targetPositionRef.current.set(...position);
-//      targetRotationRef.current.set(...rotation);
-//
-//      startTimeRef.current = Date.now();
-//
-//      const animate = () => {
-//        const elapsed = Date.now() - startTimeRef.current!;
-//        const progress = Math.min(elapsed / transitionDuration, 1);
-//
-//        const easedProgress = easeInOutCubic(progress);
-//
-//        camera.position.lerpVectors(
-//          startPositionRef.current,
-//          targetPositionRef.current,
-//          easedProgress
-//        );
-//
-//        const currentRotation = new THREE.Euler().setFromQuaternion(
-//          new THREE.Quaternion().slerpQuaternions(
-//            new THREE.Quaternion().setFromEuler(startRotationRef.current),
-//            new THREE.Quaternion().setFromEuler(targetRotationRef.current),
-//            easedProgress
-//          )
-//        );
-//
-//        camera.rotation.copy(currentRotation);
-//        camera.updateMatrixWorld();
-//
-//        if (progress < 1) {
-//          animationRef.current = requestAnimationFrame(animate);
-//        } else {
-//          if(DEBUG) console.log('📷 Camera Transition Complete:');
-//          if(DEBUG) console.log('Final Position:', {
-//             x: camera.position.x.toFixed(3),
-//             y: camera.position.y.toFixed(3),
-//             z: camera.position.z.toFixed(3)
-//           });
-//          if(DEBUG) console.log('Final Rotation:', {
-//            x: camera.rotation.x.toFixed(3),
-//            y: camera.rotation.y.toFixed(3),
-//            z: camera.rotation.z.toFixed(3)
-//          });
-//        }
-//      };
-//
-//      if (animationRef.current) {
-//        cancelAnimationFrame(animationRef.current);
-//      }
-//
-//      animationRef.current = requestAnimationFrame(animate);
-//
-//      return () => {
-//        if (animationRef.current) {
-//          cancelAnimationFrame(animationRef.current);
-//        }
-//      };
-//    }
-//  }, [camera, position, rotation, transitionDuration]);
-//
-//  return null;
-//}
-//
-//function easeInOutCubic(t: number): number {
-//  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-//}
-
-//// DONT REMOVE THIS, this can be used for manually orbiting and positioning the camera with your mouse and then clicking "p" on the keyboard to print the position & rotation
+//// WARN: DONT REMOVE THIS, this can be used for manually orbiting and positioning the camera with your mouse and then clicking "p" on the keyboard to print the position & rotation
 //// Camera/Camera.tsx
 //import { useThree } from "@react-three/fiber";
 //import { useEffect, useState, useRef } from "react";

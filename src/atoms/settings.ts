@@ -12,6 +12,8 @@ export interface AppSettings {
   };
   reducedMotion: boolean;
   defaultOctave: number;
+  preferredKeyboard: 'Casio' | 'Midiplus';
+  darkMode: boolean;
 }
 
 export const defaultSettings: AppSettings = {
@@ -24,9 +26,37 @@ export const defaultSettings: AppSettings = {
   },
   reducedMotion: false,
   defaultOctave: 4,
+  preferredKeyboard: 'Casio',
+  darkMode: false,
 };
 
-export const settingsAtom = atomWithStorage<AppSettings>('app_settings', defaultSettings);
+const migrateSettings = (loadedValue: any): AppSettings => {
+  if (!loadedValue) return defaultSettings;
+
+  return {
+    ...defaultSettings,
+    ...loadedValue,
+    noteParticleColors: {
+      ...defaultSettings.noteParticleColors,
+      ...(loadedValue.noteParticleColors || {})
+    }
+  };
+};
+
+const baseSettingsAtom = atomWithStorage('app_settings', defaultSettings);
+
+export const settingsAtom = atom(
+  (get): AppSettings => {
+    const settings = get(baseSettingsAtom);
+    return migrateSettings(settings);
+  },
+  (get, set, update: AppSettings | ((prev: AppSettings) => AppSettings)) => {
+    const current = get(settingsAtom);
+    const newValue = typeof update === 'function' ? update(current) : update;
+    const migrated = migrateSettings(newValue);
+    set(baseSettingsAtom, migrated);
+  }
+);
 
 export const audioLatencyAtom = atom(
   (get) => get(settingsAtom).audioLatency
@@ -50,8 +80,4 @@ export const reducedMotionAtom = atom(
 
 export const defaultOctaveAtom = atom(
   (get) => get(settingsAtom).defaultOctave
-);
-
-export const preferredKeyboardAtom = atom(
-  (get) => get(settingsAtom).preferredKeyboard
 );

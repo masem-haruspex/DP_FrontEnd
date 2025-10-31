@@ -50,7 +50,6 @@ export default function Keyboard({ userId, scale = 1.0, position, isLocalPlayer 
   const audioEffects = useAtomValue(audioEffectsAtom);
   const models = useAtomValue(modelsAtom);
 
-  // Get settings
   const showNoteNames = useAtomValue(showNoteNamesAtom);
   const noteParticleColors = useAtomValue(noteParticleColorsAtom);
   const defaultOctave = useAtomValue(defaultOctaveAtom);
@@ -73,7 +72,6 @@ export default function Keyboard({ userId, scale = 1.0, position, isLocalPlayer 
     if (pianoInstance?.loaded && noteName) {
       const midiNote = noteToMidi(noteName);
 
-      // Apply audio latency compensation
       const now = Tone.now();
       const scheduledTime = now + (audioLatency / 1000);
 
@@ -153,7 +151,6 @@ export default function Keyboard({ userId, scale = 1.0, position, isLocalPlayer 
     }
   }, [validateKey, handleKeyAction]);
 
-  // Initialize with default octave from settings
   useEffect(() => {
     setCurrentOctave(defaultOctave);
   }, [defaultOctave]);

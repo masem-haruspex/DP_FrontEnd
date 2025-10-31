@@ -125,11 +125,6 @@ export default function AuthModal({
         password: loginForm.password
       });
 
-      //if (protectedRouteAttempt) {
-      //  handleProtectedRouteRedirect(protectedRouteAttempt);
-      //  setProtectedRouteAttempt(null);
-      //}
-
       onAuthSuccess?.();
       onBack();
     } catch (error) {
@@ -151,11 +146,6 @@ export default function AuthModal({
         email: registerForm.email,
         password: registerForm.password
       });
-
-      //if (protectedRouteAttempt) {
-      //  handleProtectedRouteRedirect(protectedRouteAttempt);
-      //  setProtectedRouteAttempt(null);
-      //}
 
       onAuthSuccess?.();
       onBack();

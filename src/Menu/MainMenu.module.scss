@@ -67,7 +67,6 @@
   animation: pulse 1.5s infinite ease-in-out;
 }
 
-// Responsive adjustments
 @media (max-width: 768px) {
   .menuTitle {
     font-size: 2.5rem;
@@ -83,7 +82,6 @@
   }
 }
 
-// About Modal Styles
 .modalOverlay {
   @include modal-base();
 }

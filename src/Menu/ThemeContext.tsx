@@ -1,3 +1,4 @@
+// Menu/ThemeContext.tsx
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 
 export const ThemeContext = createContext({
@@ -8,7 +9,6 @@ export const ThemeContext = createContext({
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const [darkMode, setDarkMode] = useState(false);
 
-  // Load darkMode from localStorage on mount
   useEffect(() => {
     const savedSettings = localStorage.getItem('app_settings');
     if (savedSettings) {
@@ -19,7 +19,6 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, []);
 
-  // Apply and persist changes
   useEffect(() => {
     document.body.classList.toggle('dark', darkMode);
 

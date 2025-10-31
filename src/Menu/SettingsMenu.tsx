@@ -1,10 +1,13 @@
 // Menu/SettingsMenu.tsx
 import { useAtom } from 'jotai';
 import { preferredKeyboardAtom } from '../atoms/auth';
-import { settingsAtom, type AppSettings } from '../atoms/settings';
+import { settingsAtom, type AppSettings, defaultSettings } from '../atoms/settings';
 import styles from './SettingsMenu.module.scss';
 import { useAuth } from '../Auth/AuthContext';
 import { toastsAtom } from '../atoms/toast';
+import { useContext } from 'react';
+import { ThemeContext } from './ThemeContext';
+import { RefreshCw } from 'lucide-react';
 
 interface SettingsMenuProps {
   onBack: () => void;
@@ -15,6 +18,7 @@ export default function SettingsMenu({ onBack }: SettingsMenuProps) {
   const [settings, setSettings] = useAtom(settingsAtom);
   const { updatePreferredKeyboard, user } = useAuth();
   const [, setToasts] = useAtom(toastsAtom);
+  const { darkMode, setDarkMode } = useContext(ThemeContext);
 
   const updateSetting = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     setSettings(prev => ({ ...prev, [key]: value }));
@@ -27,33 +31,33 @@ export default function SettingsMenu({ onBack }: SettingsMenuProps) {
         if (typeof parentValue !== 'object' || parentValue === null) {
           console.warn(`Cannot update nested setting: ${String(parentKey)} is not an object.`);
           return prev;
-        }
+      }
 
-        return {
-          ...prev,
-          [parentKey]: {
-            ...parentValue,
-            [nestedKey]: value
-          }
-        };
+      return {
+        ...prev,
+        [parentKey]: {
+          ...parentValue,
+          [nestedKey]: value
+      }
+      };
       });
       };
 
       const handleKeyboardChange = async (keyboard: 'Casio' | 'Midiplus') => {
-  setPreferredKeyboard(keyboard);
+        setPreferredKeyboard(keyboard);
 
-  if (user) {
-    try {
-      await updatePreferredKeyboard(keyboard);
-      showToast('Preference saved!', `Keyboard: ${keyboard}`);
-    } catch (error) {
-      console.error('Failed to update keyboard preference:', error);
-      showToast('Failed to save preference', 'Local change applied only', 'warning');
-    }
-  } else {
-    showToast('Preference saved!', `Keyboard: ${keyboard}`);
-  }
-};
+        if (user) {
+          try {
+            await updatePreferredKeyboard(keyboard);
+            showToast('Preference saved!', `Keyboard: ${keyboard}`);
+      } catch (error) {
+        console.error('Failed to update keyboard preference:', error);
+        showToast('Failed to save preference', 'Local change applied only', 'warning');
+      }
+      } else {
+        showToast('Preference saved!', `Keyboard: ${keyboard}`);
+      }
+      };
 
       const showToast = (message: string, submessage?: string, type: 'success' | 'warning' = 'success') => {
         setToasts(prev => [...prev, {
@@ -62,37 +66,36 @@ export default function SettingsMenu({ onBack }: SettingsMenuProps) {
           submessage,
           type,
           duration: 3000,
-        }]);
+      }]);
       };
 
-      //const resetToDefaults = () => {
-      //  setSettings(defaultSettings);
-      //  showToast('Settings reset to defaults');
-      //};
+      const resetToDefaults = () => {
+        setSettings(defaultSettings);
+        showToast('Settings reset to defaults', 'All preferences have been reset', 'success');
+      };
 
       return (
       <>
         <h2 className={styles.menuTitle}>Settings</h2>
 
-        {/* Keyboard Preference - UPDATED TO DROPDOWN */}
-<div className={styles.settingsSection}>
-  <div className={styles.settingItem}>
-    <div className={styles.settingLabelGroup}>
-      <span className={styles.settingLabel}>Keyboard Preference</span>
-      <span className={styles.settingDescription}>
-        Choose your preferred keyboard model
-      </span>
-    </div>
-    <select
-      value={preferredKeyboard}
-      onChange={(e) => handleKeyboardChange(e.target.value as 'Casio' | 'Midiplus')}
-      className={styles.select}
-    >
-      <option value="Casio">Casio</option>
-      <option value="Midiplus">Midiplus</option>
-    </select>
-  </div>
-</div>
+        <div className={styles.settingsSection}>
+          <div className={styles.settingItem}>
+            <div className={styles.settingLabelGroup}>
+              <span className={styles.settingLabel}>Keyboard Preference</span>
+              <span className={styles.settingDescription}>
+                Choose your preferred keyboard model
+              </span>
+            </div>
+            <select
+              value={preferredKeyboard}
+              onChange={(e) => handleKeyboardChange(e.target.value as 'Casio' | 'Midiplus')}
+              className={styles.select}
+            >
+              <option value="Casio">Casio</option>
+              <option value="Midiplus">Midiplus</option>
+            </select>
+          </div>
+        </div>
 
         <div className={styles.settingsSection}>
 
@@ -268,15 +271,31 @@ export default function SettingsMenu({ onBack }: SettingsMenuProps) {
         </div>
 
         <div className={styles.actionButtons}>
-          {/*
-          <button className={styles.resetButton} onClick={resetToDefaults}>
-            Reset to Defaults
-          </button>
-            */}
           <button className={styles.backButton} onClick={onBack}>
             ← Back to Menu
           </button>
         </div>
+
+        <div className={styles.bottomLeftActions}>
+          <button
+            className={styles.themeToggleButton}
+            onClick={() => setDarkMode(!darkMode)}
+            title={!darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            <span className={`${styles.themeIcon} ${!darkMode ? styles.moon : styles.sun}`}>
+              {!darkMode ? '🌙' : '☀️'}
+            </span>
+          </button>
+
+          <button
+            className={styles.resetButton}
+            onClick={resetToDefaults}
+            title="Reset all settings to defaults"
+          >
+                <RefreshCw size={24} />
+          </button>
+        </div>
+
       </>
       );
       }

@@ -63,21 +63,6 @@ export const RoomService = {
 		}
 	},
 
-	//async leaveRoom(code: string, userId: string): Promise<void> {
-	//	debugLog('leaveRoom: Starting request', { code, userId });
-	//	try {
-	//		await api.post(`${PREFIX}/rooms/${code}/leave`, null, {
-	//			headers: {
-	//				'X-User-ID': userId
-	//			}
-	//		});
-	//		debugLog('leaveRoom: Success', { code, userId });
-	//	} catch (error) {
-	//		debugLog('leaveRoom: Error', error);
-	//		throw error;
-	//	}
-	//},
-
 	async getRoom(code: string): Promise<Room> {
 		debugLog('getRoom: Starting request', { code });
 		try {

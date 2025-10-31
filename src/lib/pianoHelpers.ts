@@ -1,3 +1,4 @@
+// lib/pianoHelpers.ts
 import { DRACOLoader } from 'three-stdlib';
 
 let sharedDracoLoader: DRACOLoader | null = null;

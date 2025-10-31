@@ -71,7 +71,6 @@
   gap: $spacing-md;
 }
 
-// ====== CUSTOM STEPPER ======
 
 .stepperContainer {
   display: flex;
@@ -131,16 +130,6 @@
   @include magical-button();
   font-size: 1.1rem;
   font-weight: 600;
-  
-  &.join {
-    //background: linear-gradient(45deg, $magic-pink, $starlight-blue);
-    //color: white;
-  }
-  
-  &.host {
-    //background: linear-gradient(45deg, $galaxy-purple, $cosmic-gold);
-    //color: white;
-  }
   
   &:hover:not(:disabled) {
     border-color: transparent;

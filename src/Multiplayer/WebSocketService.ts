@@ -440,11 +440,6 @@ export class WebSocketService {
 		}
 	}
 
-	//public getConnectionStatus(): boolean {
-	//	if (DEBUG) console.log(`[WebSocketService] Connection status: ${this.isConnected}`);
-	//	return this.isConnected;
-	//}
-
 	public getSubscriptionCount(): number {
 		if (DEBUG) console.log(`[WebSocketService] Subscription count: ${this.subscriptions.size}`);
 		return this.subscriptions.size;

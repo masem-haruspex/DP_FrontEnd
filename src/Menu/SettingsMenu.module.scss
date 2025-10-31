@@ -8,9 +8,9 @@
 
 .modalContent {
   @include magical-card();
-  max-width: 700px; // Increased from 500px
-  width: 95%; // Increased from 90%
-  max-height: 85vh; // Slightly taller
+  max-width: 700px; 
+  width: 95%; 
+  max-height: 85vh; 
   overflow-y: auto;
 }
 
@@ -36,11 +36,12 @@
   border-bottom: 2px solid rgba(139, 0, 139, 0.3);
 }
 
-// Keyboard Preference Styles
 .keyboardOptions {
-  display: flex;
-  gap: $spacing-md;
-  margin-top: $spacing-sm;
+  display: grid;
+  grid-template-columns: 1fr auto; 
+  align-items: center;
+  gap: $spacing-lg;
+  margin-top: 0; 
 }
 
 .keyboardOption {
@@ -51,6 +52,7 @@
   background: rgba(255, 255, 255, 0.6);
   border: 2px solid rgba(139, 0, 139, 0.3);
   color: $twilight-purple;
+  box-sizing: border-box;
 
   &.keyboardOptionActive {
     background: linear-gradient(45deg, $magic-pink, $starlight-blue);
@@ -61,10 +63,36 @@
   &:hover:not(:disabled) {
     border-color: $magic-pink;
   }
+
 }
 
 .keyboardName {
   font-weight: 600;
+}
+
+.keyboardLabelGroup {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.keyboardLabel {
+  color: $twilight-purple;
+  font-weight: 600;
+  font-size: 1.1rem;
+  white-space: nowrap;
+}
+
+.keyboardDescription {
+  color: rgba(139, 0, 139, 0.7);
+  font-size: 0.9rem;
+  line-height: 1.3;
+}
+
+.keyboardSelect {
+  @include magical-input();
+  min-width: 120px;
+  padding: $spacing-sm $spacing-md;
 }
 
 .settingItem {
@@ -84,14 +112,14 @@
   display: flex;
   flex-direction: column;
   gap: $spacing-xs;
-  min-width: 0; // Prevent overflow
+  min-width: 0; 
 }
 
 .settingLabel {
   color: $twilight-purple;
-  font-weight: 600; // Bolder
-  font-size: 1.1rem; // Slightly larger
-  white-space: nowrap; // Prevent wrapping
+  font-weight: 600; 
+  font-size: 1.1rem; 
+  white-space: nowrap; 
   text-align: start;
 }
 
@@ -107,12 +135,11 @@
   text-align: start;
 }
 
-// Control containers
 .sliderContainer {
   display: flex;
   align-items: center;
   gap: $spacing-md;
-  min-width: 200px; // Ensure consistent width
+  min-width: 200px; 
 }
 
 .rangeSlider {
@@ -223,21 +250,79 @@ input:disabled + .slider {
   cursor: not-allowed;
 }
 
-// Action buttons
+.bottomLeftActions {
+  position: absolute;
+  bottom: $spacing-lg;
+  left: $spacing-lg;
+  z-index: 10;
+  display: flex;
+  gap: $spacing-md;
+  align-items: center;
+}
+
+.themeToggleButton, .resetButton {
+  @include magical-button();
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid rgba(139, 0, 139, 0.3);
+  transition: all $duration-normal $easing-ease;
+
+  &:hover {
+    transform: scale(1.1);
+    border-color: $magic-pink;
+    background: rgba(255, 255, 255, 0.9);
+  }
+}
+
+.resetButton {
+  border-color: rgba($color-warning, 0.3);
+
+  &:hover {
+    border-color: rgba($color-warning, 0.5);
+  }
+}
+
+.themeIcon {
+  transition: transform $duration-normal $easing-ease;
+
+  &.moon {
+    transform: rotate(0deg);
+  }
+
+  &.sun {
+    transform: rotate(180deg);
+  }
+}
+
+.resetIcon {
+  transition: transform $duration-normal $easing-ease;
+  font-size: 2rem;
+
+  &:hover {
+    transform: rotate(90deg);
+  }
+}
+
 .actionButtons {
   display: flex;
   gap: $spacing-md;
   margin-top: $spacing-xl;
+  margin-left: 6rem;
   justify-content: center;
+  width: 100%;
 }
 
 .resetButton {
-  @include magical-button();
-  background: rgba($color-warning, 0.1);
   border-color: rgba($color-warning, 0.3);
 
   &:hover {
-    background: rgba($color-warning, 0.2);
     border-color: rgba($color-warning, 0.5);
   }
 }
@@ -246,7 +331,6 @@ input:disabled + .slider {
   @include magical-button();
 }
 
-// Responsive
 @media (max-width: 768px) {
   .modalContent {
     max-width: 95%;
@@ -279,68 +363,6 @@ input:disabled + .slider {
   .sliderContainer {
     flex-direction: column;
     gap: $spacing-sm;
-  }
-}
-
-
-
-
-
-
-
-
-
-
-
-// In SettingsMenu.module.scss, update the keyboard section:
-
-// Keyboard Preference Styles - UPDATED
-.keyboardOptions {
-  display: grid;
-  grid-template-columns: 1fr auto; // Match the settingItem layout
-  align-items: center;
-  gap: $spacing-lg;
-  margin-top: 0; // Remove extra margin
-}
-
-.keyboardLabelGroup {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-xs;
-}
-
-.keyboardLabel {
-  color: $twilight-purple;
-  font-weight: 600;
-  font-size: 1.1rem;
-  white-space: nowrap;
-}
-
-.keyboardDescription {
-  color: rgba(139, 0, 139, 0.7);
-  font-size: 0.9rem;
-  line-height: 1.3;
-}
-
-// Replace the keyboardButtons styles with:
-.keyboardSelect {
-  @include magical-input();
-  min-width: 120px;
-  padding: $spacing-sm $spacing-md;
-}
-
-.keyboardOption {
-  @include magical-button();
-  box-sizing: border-box;
-
-  &.keyboardOptionActive {
-    background: linear-gradient(45deg, $magic-pink, $starlight-blue);
-    color: white;
-    border-color: transparent;
-  }
-
-  &:hover:not(:disabled) {
-    border-color: $magic-pink;
   }
 }
 

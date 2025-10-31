@@ -166,14 +166,6 @@ export default function Multiplayer({ roomCode, onLeave, webSocketService, onSet
   const handleLeaveRoom = async () => {
    if (webSocketService)
      webSocketService.leaveRoom(roomCode);
-  //  if (user) {
-  //    try {
-  //      await RoomService.leaveRoom(roomCode, user.id);
-  //      webSocketService.disconnect();
-  //    } catch (error) {
-  //      console.error('Error leaving room:', error);
-  //    }
-  //  }
     onLeave();
   };
 

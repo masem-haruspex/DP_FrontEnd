@@ -26,7 +26,6 @@ export default function OAuthCallback() {
       }, window.location.origin);
     }
 
-    // Close the popup
     setTimeout(() => {
       window.close();
     }, 1000);

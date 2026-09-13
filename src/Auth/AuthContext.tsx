@@ -65,7 +65,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef<number>(0);
 
-  const authApiUrl = import.meta.env.VITE_AUTH_API_BASE_URL || 'http://localhost:8080';
+  const authApiUrl = import.meta.env.VITE_URL_BACKEND_AUTH;
+  const oauthTokenApiUrl = import.meta.env.VITE_URL_BACKEND_OAUTH_TOKEN;
 
   const scheduleTokenRefresh = (expiresIn: number) => {
     if (refreshTimeoutRef.current) {
@@ -89,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('No refresh token available');
       }
 
-      const response = await fetch(`${authApiUrl}/oauth2/token`, {
+      const response = await fetch(oauthTokenApiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -155,7 +156,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchCsrfTokenWithRetry = async (maxRetries: number = 3, baseDelay: number = 1000) => {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        const response = await fetch('http://localhost:8080/api/csrf', {
+        const response = await fetch(`${authApiUrl}/csrf`, {
           method: 'GET',
           credentials: 'include'
         });
@@ -191,11 +192,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchCsrfToken = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/csrf', {
+      const response = await fetch(`${authApiUrl}/csrf`, {
         method: 'GET',
         credentials: 'include'
       });
-
       if (response.ok) {
         if (DEBUG) console.log('CSRF token fetched successfully');
       } else {
@@ -315,7 +315,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const codeChallenge = await generateCodeChallenge(codeVerifier);
       sessionStorage.setItem('code_verifier', codeVerifier);
 
-      const tokenResponse = await fetch(`${authApiUrl}/oauth2/token`, {
+      const tokenResponse = await fetch(oauthTokenApiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -332,8 +332,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (!tokenResponse.ok) {
-        const errorData = await tokenResponse.json();
-        throw new Error(errorData.error_description || errorData.error || 'Login failed');
+        let errorMessage = 'Login failed';
+        try {
+          const errorData = await tokenResponse.json();
+          errorMessage = errorData.error_description || errorData.error || errorMessage;
+        } catch (e) {
+          switch (tokenResponse.status) {
+            case 401:
+              errorMessage = 'Invalid username or password';
+              break;
+            case 403:
+              errorMessage = 'Account is locked or disabled';
+              break;
+            case 404:
+              errorMessage = 'Login service not found';
+              break;
+            case 500:
+              errorMessage = 'Server error, please try again later';
+              break;
+            default:
+              errorMessage = `Login failed (${tokenResponse.status})`;
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       const tokenData = await tokenResponse.json();
@@ -372,7 +393,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const messageHandler = async (event: MessageEvent) => {
         console.log('📨 Message received:', event.data);
 
-        if (event.origin !== window.location.origin && event.origin !== "http://localhost:8080") {
+        if (event.origin !== window.location.origin && event.origin !== authApiUrl && event.origin !== "http://localhost:8080" && event.origin !== "https://masemharuspex.com") {
           console.log('❌ Wrong origin:', event.origin);
           return;
         }
@@ -420,7 +441,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const registerMutation = useMutation({
     mutationFn: async (data: { username: string; email: string; password: string }) => {
-      const response = await axiosInstance.post(`${authApiUrl}/api/auth/register`, data);
+      const response = await axiosInstance.post(`${authApiUrl}/register`, data);
       return response.data;
     },
     onSuccess: async (_, variables) => {
@@ -442,17 +463,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateKeyboardMutation = useMutation({
     mutationFn: async (keyboard: 'Casio' | 'Midiplus') => {
       const userId = auth.user?.id;
-          console.log('Making keyboard update request for user:', userId);
-    console.log('axiosInstance defaults:', axiosInstance.defaults.headers);
+      console.log('Making keyboard update request for user:', userId);
+      console.log('axiosInstance defaults:', axiosInstance.defaults.headers);
       const response = await axiosInstance.put(
-        `${authApiUrl}/api/auth/${userId}`,
+        `${authApiUrl}/${userId}`,
         { preferredKeyboard: keyboard },
-      {
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json'
+        {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json'
+          }
         }
-      }
       );
       return response.data;
     },

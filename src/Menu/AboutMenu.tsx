@@ -10,11 +10,8 @@ export default function AboutMenu({ onBack }: AboutMenuProps) {
     <>
       <h2 className={styles.menuTitle}>About Us</h2>
       <div className={styles.aboutContent}>
-        <p>Created with love by [Your Name] and [Coworker's Name].</p>
+        <p>Created by Masem Haruspex with the help of KaeL-0.</p>
         <p>We hope you enjoy playing as much as we enjoyed creating this ethereal musical journey.</p>
-        <p style={{ fontSize: '0.9rem' }}>
-          Credits to <a href="https://x.com/annatar108" target="_blank">Annatar</a> for the background image.
-        </p>
       </div>
       <button className={styles.backButton} onClick={onBack}>
         ← Back to Menu

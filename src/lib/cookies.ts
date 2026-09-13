@@ -1,6 +1,12 @@
 // lib/cookies.ts
 export const setCookie = (name: string, value: string, days?: number) => {
   let expires = '';
+  let secureFlag = '';
+
+  if (import.meta.env.PROD) {
+    secureFlag = '; Secure';
+  }
+
   if (days !== undefined) {
     if (days > 0) {
       const date = new Date();
@@ -10,7 +16,8 @@ export const setCookie = (name: string, value: string, days?: number) => {
       expires = '';
     }
   }
-  document.cookie = `${name}=${value}${expires}; path=/; SameSite=Lax`;
+
+  document.cookie = `${name}=${value}${expires}${secureFlag}; path=/; SameSite=Strict`;
 };
 
 export const getCookie = (name: string): string | null => {

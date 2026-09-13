@@ -3,7 +3,7 @@ import api from '../lib/axiosInstance';
 import type { CreateRoomData, Room } from './Room';
 
 const DEBUG_PREFIX = '[RoomService]';
-const PREFIX = "http://localhost:8082/api";
+const PREFIX = `${import.meta.env.VITE_URL_BACKEND_ROOMS}`;
 
 const debugLog = (message: string, data?: any) => {
 	const DEBUG = true;
@@ -25,7 +25,7 @@ export const RoomService = {
 		try {
 			const token = localStorage.getItem('token');
 
-			const response = await api.post<Room>(PREFIX + '/rooms', roomData, {
+			const response = await api.post<Room>(PREFIX, roomData, {
 				headers: {
 					'X-User-ID': ownerId,
 					'Authorization': `Bearer ${token}`
@@ -51,7 +51,7 @@ export const RoomService = {
 				headers['Authorization'] = `Bearer ${token}`;
 			}
 
-			const response = await api.post(`${PREFIX}/rooms/${code}/join`,
+			const response = await api.post(`${PREFIX}/${code}/join`,
 				{ userId, password },
 				{ headers }
 			);
@@ -66,7 +66,7 @@ export const RoomService = {
 	async getRoom(code: string): Promise<Room> {
 		debugLog('getRoom: Starting request', { code });
 		try {
-			const response = await api.get<Room>(`${PREFIX}/rooms/${code}`);
+			const response = await api.get<Room>(`${PREFIX}/${code}`);
 			debugLog('getRoom: Success', { room: response.data });
 			return response.data;
 		} catch (error) {
@@ -78,7 +78,7 @@ export const RoomService = {
 	async getRoomParticipants(code: string): Promise<any[]> {
 		debugLog('getRoomParticipants: Starting request', { code });
 		try {
-			const response = await api.get<any[]>(`${PREFIX}/rooms/${code}/participants`);
+			const response = await api.get<any[]>(`${PREFIX}/${code}/participants`);
 			debugLog('getRoomParticipants: Success', { participantCount: response.data.length });
 			return response.data;
 		} catch (error) {
@@ -90,7 +90,7 @@ export const RoomService = {
 	async deleteRoom(roomId: string, ownerId: string): Promise<void> {
 		debugLog('deleteRoom: Starting request', { roomId, ownerId });
 		try {
-			await api.delete(`${PREFIX}/rooms/${roomId}`, {
+			await api.delete(`${PREFIX}/${roomId}`, {
 				headers: {
 					'X-User-ID': ownerId
 				}
@@ -105,7 +105,7 @@ export const RoomService = {
 	async kickUser(code: string, ownerId: string, userId: string): Promise<void> {
 		debugLog('kickUser: Starting request', { code, ownerId, userId });
 		try {
-			await api.post(`${PREFIX}/rooms/${code}/kick`, { userId }, {
+			await api.post(`${PREFIX}/${code}/kick`, { userId }, {
 				headers: {
 					'X-User-ID': ownerId
 				}
@@ -120,7 +120,7 @@ export const RoomService = {
 	async muteUser(code: string, ownerId: string, userId: string): Promise<void> {
 		debugLog('muteUser: Starting request', { code, ownerId, userId });
 		try {
-			await api.post(`${PREFIX}/rooms/${code}/mute`, { userId }, {
+			await api.post(`${PREFIX}/${code}/mute`, { userId }, {
 				headers: {
 					'X-User-ID': ownerId
 				}

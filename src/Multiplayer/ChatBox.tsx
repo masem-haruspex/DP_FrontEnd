@@ -7,6 +7,9 @@ import styles from './ChatBox.module.scss';
 import { WebSocketService } from './WebSocketService';
 import { useAtom } from 'jotai';
 import { guestIdAtom } from '../atoms/auth';
+import DOMPurify from 'dompurify';
+import { useSetAtom } from 'jotai';
+import { toastsAtom } from '../atoms/toast';
 
 interface ChatBoxProps {
   roomCode: string;
@@ -28,7 +31,7 @@ export default function ChatBox({ roomCode, webSocketService, showUI }: ChatBoxP
   const [guestId] = useAtom(guestIdAtom);
   const currentUserId = user?.id || guestId;
   const visibleMessages = messages.filter(message => !mutedUsers.has(message.userId));
-
+  const setToasts = useSetAtom(toastsAtom);
   const hideTimeoutRef = useRef<NodeJS.Timeout>(null);
 
   const toggleMuteUser = (userId: string) => {
@@ -78,26 +81,26 @@ export default function ChatBox({ roomCode, webSocketService, showUI }: ChatBoxP
 
     setIsLoading(true);
     try {
-      if(DEBUG) console.log('Sending message:', { roomCode, content: newMessage.trim() });
-
-      const sentMessage = await MessagingService.sendMessage(currentUserId, {
-        roomCode,
-        content: newMessage.trim()
-      });
-
-      if(DEBUG) console.log('Message sent successfully:', sentMessage);
-
-      setNewMessage('');
-
-      setIsInputFocused(false);
-      inputRef.current?.blur();
-
-    } catch (error) {
-      console.error('Failed to send message:', error);
+        await MessagingService.sendMessage(currentUserId, {
+            roomCode,
+            content: newMessage.trim()
+        });
+        setNewMessage('');
+    } catch (error: any) {
+        if (error.response?.status === 429) {
+            setToasts(prev => [...prev, {
+                id: Date.now().toString(),
+                message: 'Sending messages too fast! Please wait.',
+                type: 'warning',
+                duration: 2000,
+            }]);
+        } else {
+            console.error('Failed to send message:', error);
+        }
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
-  };
+};
 
   const handleFocus = () => {
     setIsInputFocused(true);
@@ -193,7 +196,7 @@ export default function ChatBox({ roomCode, webSocketService, showUI }: ChatBoxP
                 </span>
               </div>
               <div className={styles.messageContent}>
-                {message.content}
+                <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(message.content) }} />
               </div>
             </div>
           ))

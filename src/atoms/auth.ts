@@ -46,6 +46,6 @@ export const preferredKeyboardAtom = atom(
   (get, set, update: 'Casio' | 'Midiplus') => {
     const auth = get(authAtom);
     localStorage.setItem('preferred_keyboard', update);
-    set(authAtom, { ...auth }); // rerender
+    set(authAtom, { ...auth });
   }
 );

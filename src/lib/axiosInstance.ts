@@ -2,6 +2,8 @@
 import axios from 'axios';
 import { getCookie, setCookie, deleteCookie } from './cookies';
 
+const URL_BACKEND_AUTH = import.meta.env.VITE_URL_BACKEND_AUTH || 'http://localhost:8080';
+
 const axiosInstance = axios.create({
     timeout: 10000,
     headers: {
@@ -34,7 +36,7 @@ const showToast = (toastData: { message: string; type: 'success' | 'error' | 'wa
 
 const refreshCsrfToken = async (): Promise<string | null> => {
     try {
-        const response = await fetch('http://localhost:8080/api/csrf', {
+        const response = await fetch(`${URL_BACKEND_AUTH}/csrf`, {
             method: 'GET',
             credentials: 'include'
         });
@@ -51,35 +53,24 @@ const refreshCsrfToken = async (): Promise<string | null> => {
 };
 
 axiosInstance.interceptors.request.use(
-    async (config) => {
-        const token = document.cookie
-            .split('; ')
-            .find(row => row.startsWith('token='))
-            ?.split('=')[1];
+  async (config) => {
+    const token = getCookie('token');
 
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-
-        if (config.method && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
-            let csrfToken = getCsrfToken();
-
-            if (!csrfToken) {
-                csrfToken = await refreshCsrfToken();
-            }
-
-            if (csrfToken) {
-                config.headers['X-XSRF-TOKEN'] = csrfToken;
-            } else {
-                console.warn('No CSRF token available for request');
-            }
-        }
-
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
+
+    if (config.method && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
+      let csrfToken = getCsrfToken();
+      if (!csrfToken) 
+        csrfToken = await refreshCsrfToken();
+      if (csrfToken)
+        config.headers['X-XSRF-TOKEN'] = csrfToken;
+    }
+
+    config.withCredentials = true;
+    return config;
+  }
 );
 
 let isRefreshing = false;

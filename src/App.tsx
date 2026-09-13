@@ -17,13 +17,15 @@ import { useAuth } from './Auth/AuthContext';
 import { WebSocketService } from './Multiplayer/WebSocketService';
 import Multiplayer from './Multiplayer/Multiplayer';
 import { menuStateAtom, cameraRotationAtom, cameraPositionAtom, markIntroAnimationsPlayedAtom } from './atoms/menuState';
-import { initializeAudioAtom, isAudioReadyAtom } from './atoms/audio';
+import { initializeAudioAtom } from './atoms/audio';
 import { singlePlayerAudioSettingsAtom, multiplayerAudioSettingsAtom } from './atoms/audio';
 import { RoomService } from './Multiplayer/RoomService';
 import { toastsAtom } from './atoms/toast';
 import { getOrCreateGuestId } from './lib/cookies';
 import { antiAliasingAtom, reducedMotionAtom } from './atoms/settings';
 import { preferredKeyboardAtom } from './atoms/auth';
+import BackgroundMusic from './LoadingScreen/BackgroundMusic';
+import { getCookie } from './lib/cookies';
 
 export default function App() {
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
@@ -38,7 +40,6 @@ export default function App() {
   const [_, setAnimationsComplete] = useState(false);
   const [minDelayPassed, setMinDelayPassed] = useState(false);
 
-  const isAudioReady = useAtomValue(isAudioReadyAtom);
   const initializeAudio = useSetAtom(initializeAudioAtom);
   const [multiplayerPlayers, setMultiplayerPlayers] = useState<any[]>([]);
   const { user } = useAuth();
@@ -78,7 +79,8 @@ export default function App() {
     setCurrentMultiplayerRoom(roomCode);
 
     const userId = user?.id || getOrCreateGuestId();
-    const token = localStorage.getItem('token');
+    //const token = localStorage.getItem('token');
+    const token = getCookie('token');
     const wsService = new WebSocketService();
 
     try {
@@ -299,10 +301,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (modelsLoaded && isAudioReady && minDelayPassed && !showMainMenu && !showSinglePlayer && !currentMultiplayerRoom) {
+    if (modelsLoaded && minDelayPassed && !showMainMenu && !showSinglePlayer && !currentMultiplayerRoom) {
       handleLoadingComplete();
     }
-  }, [modelsLoaded, isAudioReady, minDelayPassed, showMainMenu, showSinglePlayer, currentMultiplayerRoom, handleLoadingComplete]);
+  }, [modelsLoaded, minDelayPassed, showMainMenu, showSinglePlayer, currentMultiplayerRoom, handleLoadingComplete]);
 
   useEffect(() => {
     if (hasUserInteracted && !minDelayPassed) {
@@ -372,7 +374,7 @@ export default function App() {
         <div
           className={styles.backgroundImage}
           style={{
-            backgroundImage: 'url("/bg-nebula.PNG")',
+            backgroundImage: 'url("/duopiano5.webp")',
               backgroundPosition: reducedMotion
                 ? 'center' 
                 : (menuState.showSinglePlayerMenu || menuState.showMultiplayerMenu || menuState.showSettingsMenu ? 'right' : 'left')
@@ -624,6 +626,11 @@ export default function App() {
       >
         {debug ? 'Hide Stats' : 'Show Stats'}
       </button>
+
+      <BackgroundMusic
+        startAnimation={startLoadingAnimations}
+        onIntroComplete={() => {}}
+      />
     </div>
   );
 }

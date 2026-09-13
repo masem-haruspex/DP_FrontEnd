@@ -3,6 +3,7 @@ import SockJS from 'sockjs-client';
 import Stomp from 'stompjs';
 
 const DEBUG = false;
+const WS_URL = `${import.meta.env.VITE_URL_BACKEND_WS}`;
 
 export interface KeyEvent {
 	userId: string;
@@ -37,6 +38,21 @@ export class WebSocketService {
 	private currentRoomCode: string | null = null;
 
 	public connect(roomCode: string, userId: string, token: string | null): Promise<void> {
+		console.log('[WebSocketService] CONNECT DEBUG:', {
+			userId,
+			token: token ? `${token.substring(0, 20)}...` : 'NULL',
+			tokenLength: token?.length,
+			roomCode
+		});
+
+		if (token) {
+			const parts = token.split('.');
+			console.log('[WebSocketService] Token parts:', parts.length);
+			if (parts.length !== 3) {
+				console.error('[WebSocketService] INVALID TOKEN FORMAT - not a JWT!');
+			}
+		}
+
 		if (this.connectionPromise) {
 			if (DEBUG) console.log(`[WebSocketService] Connection promise already exists, returning existing promise`);
 			return this.connectionPromise;
@@ -49,8 +65,10 @@ export class WebSocketService {
 		this.currentRoomCode = roomCode;
 
 		this.connectionPromise = new Promise((resolve, reject) => {
-			const socket = new SockJS('http://localhost:8083/ws');
+			const socket = new SockJS(WS_URL);
 			this.stompClient = Stomp.over(socket);
+			this.stompClient.heartbeat.outgoing = 10000;
+			this.stompClient.heartbeat.incoming = 10000;
 			this.stompClient.debug = DEBUG ? console.log : () => {};
 
 			if (!DEBUG) {
@@ -126,7 +144,7 @@ export class WebSocketService {
 					reject(new Error('WebSocket connection timeout'));
 					this.connectionPromise = null;
 				}
-			}, 10000);
+			}, 30000);
 		});
 
 		return this.connectionPromise;

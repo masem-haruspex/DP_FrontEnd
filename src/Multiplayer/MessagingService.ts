@@ -1,9 +1,10 @@
 // Multiplayer/MessagingService.ts
 import api from '../lib/axiosInstance';
 import type { Message, SendMessageData } from './Message';
+import { getCookie } from '../lib/cookies';
 
 const DEBUG_PREFIX = '[MessagingService]';
-const PREFIX = "http://localhost:8083/api";
+const PREFIX = `${import.meta.env.VITE_URL_BACKEND_MESSAGING}`;
 
 const debugLog = (message: string, data?: any) => {
   const DEBUG = false;
@@ -26,12 +27,12 @@ export const MessagingService = {
         'X-User-ID': userId
       };
 
-      const token = localStorage.getItem('token');
+      const token = getCookie('token');
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await api.post<Message>(`${PREFIX}/messages`, messageData, {
+      const response = await api.post<Message>(`${PREFIX}`, messageData, {
         headers,
         withCredentials: true
       });
@@ -46,7 +47,7 @@ export const MessagingService = {
   async getRoomMessages(roomCode: string): Promise<Message[]> {
     debugLog('getRoomMessages: Starting request', { roomCode });
     try {
-      const response = await api.get<Message[]>(`${PREFIX}/messages/rooms/${roomCode}`, {
+      const response = await api.get<Message[]>(`${PREFIX}/rooms/${roomCode}`, {
         withCredentials: true
       });
       debugLog('getRoomMessages: Success', { messageCount: response.data.length });

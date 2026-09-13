@@ -90,7 +90,8 @@ export const initializeAudioAtom = atom(null, async (get, set) => {
       velocities: 3,
       minNote: MIN_NOTE,
       maxNote: MAX_NOTE,
-      url: '/audio-samples/'
+      //url: '/audio-samples/'
+		// uncomment that line if you want to use locally downloaded piano note samples
     });
 
     if (DEBUG) console.log('[AUDIO] Creating effects...');

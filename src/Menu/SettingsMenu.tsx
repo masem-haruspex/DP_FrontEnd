@@ -297,5 +297,5 @@ export default function SettingsMenu({ onBack }: SettingsMenuProps) {
         </div>
 
       </>
-      );
-      }
+  );
+}

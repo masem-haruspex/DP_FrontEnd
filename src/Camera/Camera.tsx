@@ -116,7 +116,7 @@ function easeInOutCubic(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
-//// WARN: DONT REMOVE THIS, this can be used for manually orbiting and positioning the camera with your mouse and then clicking "p" on the keyboard to print the position & rotation
+//// WARN: DONT REMOVE THIS, this can be used for manually orbiting and positioning the camera with your mouse and then clicking "p" on the keyboard to print the position & rotation. This code is here for debugging if needed.
 //// Camera/Camera.tsx
 //import { useThree } from "@react-three/fiber";
 //import { useEffect, useState, useRef } from "react";

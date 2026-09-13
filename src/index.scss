@@ -1,14 +1,9 @@
 /* index.scss */
-
 @use './styles/vars';
 @use './styles/mixins';
 
-* {
-  font-family: 'Inter', sans-serif;
-}
-
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 

@@ -70,7 +70,6 @@
   @include magical-button();
 }
 
-// Responsive
 @media (max-width: 480px) {
   .menuTitle {
     font-size: 2rem;

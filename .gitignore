@@ -28,3 +28,18 @@ Thumbs.db
 .env.*.local
 
 /public/audio-samples/
+
+### Secrets & local configuration (never commit) ###
+# Environment files (VITE_* vars are bundled into the client build)
+.env
+.env.*
+!.env.example
+
+# Private keys / certificates
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Source dumps / scratch files
+*_code.txt
